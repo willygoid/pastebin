@@ -1,0 +1,11 @@
+
+services:
+  frontend:
+    volumes:
+      - ./frontend:/app
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    command: npm start
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"

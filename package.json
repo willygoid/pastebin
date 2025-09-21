@@ -1,0 +1,10 @@
+{
+  "name": "frontend-wrapper",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix ./app run dev",
+    "start": "npm --prefix ./app start",
+    "build": "npm --prefix ./app run build"
+  }
+}

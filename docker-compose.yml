@@ -1,0 +1,103 @@
+services:
+  postgres:
+    container_name: ${APP_NAME}_postgres
+    image: postgres:15
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - appnet
+
+  redis:
+    container_name: ${APP_NAME}_redis
+    image: redis:7-alpine
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - appnet
+
+  backend:
+    container_name: ${APP_NAME}_backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: on-failure
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=${POSTGRES_PORT}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT}
+      - APP_ENV=${APP_ENV}
+      - APP_PORT=${BACKEND_PORT}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - appnet
+    expose:
+      - "${BACKEND_PORT}"
+
+  frontend:
+    container_name: ${APP_NAME}_frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_APP_URL=${FRONTEND_URL}
+    depends_on:
+      - backend
+    networks:
+      - appnet
+    expose:
+      - "${FRONTEND_PORT}"
+    volumes:
+      - ./frontend:/app
+
+  nginx:
+    container_name: ${APP_NAME}_nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - BACKEND_UPSTREAM_HOST=backend
+      - BACKEND_UPSTREAM_PORT=${BACKEND_PORT}
+      - FRONTEND_UPSTREAM_HOST=frontend
+      - FRONTEND_UPSTREAM_PORT=${FRONTEND_PORT}
+      - NGINX_SERVER_NAME=${NGINX_SERVER_NAME}
+    ports:
+      - "${NGINX_HTTP_PORT}:80"
+      - "${NGINX_HTTPS_PORT}:443"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - appnet
+
+volumes:
+  db_data:
+  redis_data:
+
+networks:
+  appnet:
+    driver: bridge

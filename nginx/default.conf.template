@@ -1,0 +1,32 @@
+server {
+    listen 80;
+    server_name ${NGINX_SERVER_NAME};
+
+    # Frontend (Next.js)
+    location / {
+        proxy_pass http://${FRONTEND_UPSTREAM_HOST}:${FRONTEND_UPSTREAM_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # API proxy to backend (contoh: /api -> backend)
+    location /api/ {
+        proxy_pass http://${BACKEND_UPSTREAM_HOST}:${BACKEND_UPSTREAM_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Optional: allow websocket upgrade (Next.js + SW)
+    location /_next/webpack-hmr {
+        proxy_pass http://${FRONTEND_UPSTREAM_HOST}:${FRONTEND_UPSTREAM_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
