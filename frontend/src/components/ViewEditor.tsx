@@ -1,23 +1,15 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import Editor from '@monaco-editor/react'
 
-interface CodeEditorProps {
+interface ViewEditorProps {
   value: string
-  onChange: (value: string) => void
   language: string
   theme: 'vs-dark' | 'light'
-  readOnly?: boolean
 }
 
-export default function CodeEditor({ 
-  value, 
-  onChange, 
-  language, 
-  theme,
-  readOnly = false 
-}: CodeEditorProps) {
+export default function ViewEditor({ value, language, theme }: ViewEditorProps) {
   const editorRef = useRef<any>(null)
 
   const handleEditorDidMount = (editor: any, monaco: any) => {
@@ -31,12 +23,9 @@ export default function CodeEditor({
       scrollBeyondLastLine: false,
       wordWrap: 'on',
       automaticLayout: true,
-      readOnly: readOnly,
+      readOnly: true,
+      contextmenu: false,
     })
-
-    if (!readOnly) {
-      editor.focus()
-    }
   }
 
   return (
@@ -44,15 +33,15 @@ export default function CodeEditor({
       height="100%"
       language={language}
       value={value}
-      onChange={(value) => !readOnly && onChange(value || '')}
       theme={theme}
       onMount={handleEditorDidMount}
       options={{
         selectOnLineNumbers: true,
         roundedSelection: false,
-        readOnly: readOnly,
+        readOnly: true,
         cursorStyle: 'line',
         automaticLayout: true,
+        minimap: { enabled: true },
       }}
     />
   )

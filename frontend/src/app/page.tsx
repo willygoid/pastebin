@@ -4,23 +4,25 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import dynamic from 'next/dynamic'
+import { Toaster, toast } from 'react-hot-toast'
 import { 
-  Moon, Sun, Save, FileText, Settings, 
-  ChevronDown, Upload, Trash2
+  Save, Settings, Trash2, Loader2, Edit, Zap
 } from 'lucide-react'
+import Layout from '@/components/Layout'
 import TabBar from '@/components/TabBar'
+import SettingsSidebar from '@/components/SettingsSidebar'
+import ActionsSidebar from '@/components/ActionsSidebar'
 
-// Dynamic import untuk Monaco Editor (client-side only)
 const CodeEditor = dynamic(() => import('@/components/CodeEditor'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-full">
-      <div className="text-gray-500">Loading editor...</div>
+      <Loader2 className="animate-spin" size={32} />
     </div>
   )
 })
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+const API_URL = '/api'
 
 interface Tab {
   id: string
@@ -29,32 +31,9 @@ interface Tab {
   language: string
   saved: boolean
   expiresIn: number
+  shortId?: string
+  isReadOnly?: boolean
 }
-
-const LANGUAGES = [
-  { value: 'text', label: 'Plain Text' },
-  { value: 'javascript', label: 'JavaScript' },
-  { value: 'typescript', label: 'TypeScript' },
-  { value: 'python', label: 'Python' },
-  { value: 'go', label: 'Go' },
-  { value: 'java', label: 'Java' },
-  { value: 'html', label: 'HTML' },
-  { value: 'css', label: 'CSS' },
-  { value: 'json', label: 'JSON' },
-  { value: 'sql', label: 'SQL' },
-  { value: 'bash', label: 'Bash' },
-  { value: 'rust', label: 'Rust' },
-  { value: 'php', label: 'PHP' },
-  { value: 'ruby', label: 'Ruby' },
-]
-
-const EXPIRY_OPTIONS = [
-  { value: 0, label: 'Never' },
-  { value: 1, label: '1 Hour' },
-  { value: 24, label: '1 Day' },
-  { value: 168, label: '1 Week' },
-  { value: 720, label: '1 Month' },
-]
 
 export default function Home() {
   const router = useRouter()
@@ -62,9 +41,8 @@ export default function Home() {
   const [tabs, setTabs] = useState<Tab[]>([])
   const [activeTabId, setActiveTabId] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // Initialize from localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'dark' | 'light'
     if (savedTheme) setTheme(savedTheme)
@@ -77,12 +55,11 @@ export default function Home() {
       setTabs(parsedTabs)
       setActiveTabId(savedActiveTab || parsedTabs[0]?.id || '')
     } else {
-      // Create initial tab
       const initialTab: Tab = {
         id: Date.now().toString(),
-        title: 'Untitled',
-        content: '',
-        language: 'text',
+        title: '',
+        content: '// Start typing your code here...\n\n',
+        language: 'javascript',
         saved: true,
         expiresIn: 0,
       }
@@ -91,7 +68,6 @@ export default function Home() {
     }
   }, [])
 
-  // Auto-save to localStorage
   useEffect(() => {
     if (tabs.length > 0) {
       localStorage.setItem('tabs', JSON.stringify(tabs))
@@ -99,11 +75,24 @@ export default function Home() {
     }
   }, [tabs, activeTabId])
 
-  // Save theme preference
   useEffect(() => {
     localStorage.setItem('theme', theme)
-    document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        const tab = tabs.find(t => t.id === activeTabId)
+        if (tab && !tab.isReadOnly) {
+          handleSave()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [tabs, activeTabId])
 
   const activeTab = tabs.find(t => t.id === activeTabId)
 
@@ -118,7 +107,7 @@ export default function Home() {
   const handleNewTab = () => {
     const newTab: Tab = {
       id: Date.now().toString(),
-      title: 'Untitled',
+      title: '',
       content: '',
       language: 'text',
       saved: true,
@@ -126,9 +115,18 @@ export default function Home() {
     }
     setTabs([...tabs, newTab])
     setActiveTabId(newTab.id)
+    setSidebarOpen(false)
+    toast.success('New tab created')
   }
 
   const handleCloseTab = (id: string) => {
+    const tab = tabs.find(t => t.id === id)
+    if (!tab?.saved && tab?.content.trim() && !tab?.isReadOnly) {
+      if (!confirm('You have unsaved changes. Close anyway?')) {
+        return
+      }
+    }
+
     const newTabs = tabs.filter(t => t.id !== id)
     if (newTabs.length === 0) {
       handleNewTab()
@@ -138,36 +136,79 @@ export default function Home() {
         setActiveTabId(newTabs[0].id)
       }
     }
+    setSidebarOpen(false)
   }
 
   const handleSave = async () => {
     if (!activeTab || !activeTab.content.trim()) {
-      alert('Please enter some content')
+      toast.error('Please enter some content')
       return
     }
 
     setLoading(true)
+    const loadingToast = toast.loading('Creating paste...')
+
     try {
       const response = await axios.post(`${API_URL}/pastes`, {
-        title: activeTab.title || 'Untitled',
+        title: activeTab.title || undefined,
         content: activeTab.content,
         language: activeTab.language,
         expires_in: activeTab.expiresIn,
         is_private: false
       })
 
-      const shortID = response.data.data.id
+      const data = response.data.data
+      const shortId = data.id
+      const finalTitle = data.title || shortId
+
+      setTabs(tabs.map(tab => 
+        tab.id === activeTabId 
+          ? { 
+              ...tab, 
+              saved: true, 
+              shortId: shortId,
+              title: finalTitle,
+              isReadOnly: true 
+            }
+          : tab
+      ))
+
+      toast.success('Paste created successfully!', { id: loadingToast })
       
-      // Mark as saved
-      updateActiveTab({ saved: true })
+      setSidebarOpen(true)
+
+      const url = `${window.location.origin}/${shortId}`
+      navigator.clipboard.writeText(url)
       
-      // Redirect to paste view
-      router.push(`/${shortID}`)
+      setTimeout(() => {
+        toast.success('URL copied to clipboard!', {
+          icon: '📋'
+        })
+      }, 500)
+
     } catch (error: any) {
-      console.error('Error creating paste:', error)
-      alert('Failed to create paste: ' + (error.response?.data?.message || error.message))
+      toast.error('Failed to create paste: ' + (error.response?.data?.message || error.message), {
+        id: loadingToast
+      })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleEdit = () => {
+    if (activeTab && activeTab.shortId) {
+      const newTab: Tab = {
+        id: Date.now().toString(),
+        title: `Fork of ${activeTab.title}`,
+        content: activeTab.content,
+        language: activeTab.language,
+        saved: false,
+        expiresIn: 0,
+      }
+      setTabs([...tabs, newTab])
+      setActiveTabId(newTab.id)
+      setSidebarOpen(false)
+      toast.success('Forked to new tab for editing')
     }
   }
 
@@ -175,194 +216,215 @@ export default function Home() {
     if (confirm('Clear all tabs? This cannot be undone.')) {
       localStorage.removeItem('tabs')
       localStorage.removeItem('activeTab')
-      handleNewTab()
+      window.location.reload()
     }
   }
 
   const isDark = theme === 'dark'
 
   return (
-    <div className={`flex flex-col h-screen ${
-      isDark ? 'bg-[#1e1e1e] text-white' : 'bg-white text-gray-900'
-    }`}>
-      {/* Top Bar */}
-      <div className={`flex items-center justify-between px-4 py-2 border-b ${
-        isDark ? 'bg-[#2d2d2d] border-[#3e3e3e]' : 'bg-gray-100 border-gray-300'
-      }`}>
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <FileText size={24} />
-            Pastepen
-          </h1>
-          <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            by @willygoid
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className={`p-2 rounded transition-colors ${
-              isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'
-            }`}
-            title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-          >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className={`p-2 rounded transition-colors ${
-              isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'
-            }`}
-            title="Settings"
-          >
-            <Settings size={18} />
-          </button>
-
-          <button
-            onClick={handleSave}
-            disabled={loading || !activeTab?.content}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded font-medium transition-colors
-              ${loading || !activeTab?.content
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }
-            `}
-          >
-            <Save size={18} />
-            {loading ? 'Saving...' : 'Save & Share'}
-          </button>
-        </div>
-      </div>
-
-      {/* Tab Bar */}
-      <TabBar
-        tabs={tabs}
-        activeTab={activeTabId}
-        onTabChange={setActiveTabId}
-        onTabClose={handleCloseTab}
-        onNewTab={handleNewTab}
-        theme={theme}
+    <Layout 
+      theme={theme} 
+      onThemeToggle={() => setTheme(isDark ? 'light' : 'dark')}
+    >
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: isDark ? '#2d2d2d' : '#fff',
+            color: isDark ? '#fff' : '#000',
+            border: `1px solid ${isDark ? '#3e3e3e' : '#e5e5e5'}`,
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
       />
 
-      {/* Settings Panel */}
-      {showSettings && activeTab && (
-        <div className={`flex items-center gap-4 px-4 py-2 border-b ${
+      {/* Main Editor Area - Full Width */}
+      <div className="flex-1 flex flex-col h-full">
+        {/* Action Bar */}
+        <div className={`flex items-center justify-between px-4 py-2 border-b ${
           isDark ? 'bg-[#252525] border-[#3e3e3e]' : 'bg-gray-50 border-gray-300'
         }`}>
+          {/* Left Side */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Title:</label>
-            <input
-              type="text"
-              value={activeTab.title}
-              onChange={(e) => updateActiveTab({ title: e.target.value })}
-              placeholder="Untitled"
+            <button
+              onClick={handleClearAll}
               className={`
-                px-3 py-1 rounded border text-sm
+                flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors
                 ${isDark 
-                  ? 'bg-[#1e1e1e] border-[#3e3e3e] focus:border-blue-500' 
-                  : 'bg-white border-gray-300 focus:border-blue-500'
-                }
-                focus:outline-none
-              `}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Language:</label>
-            <select
-              value={activeTab.language}
-              onChange={(e) => updateActiveTab({ language: e.target.value })}
-              className={`
-                px-3 py-1 rounded border text-sm
-                ${isDark 
-                  ? 'bg-[#1e1e1e] border-[#3e3e3e]' 
-                  : 'bg-white border-gray-300'
+                  ? 'hover:bg-red-900/30 text-red-400' 
+                  : 'hover:bg-red-50 text-red-600'
                 }
               `}
+              title="Clear All Tabs"
             >
-              {LANGUAGES.map(lang => (
-                <option key={lang.value} value={lang.value}>
-                  {lang.label}
-                </option>
-              ))}
-            </select>
+              <Trash2 size={16} />
+              Clear All
+            </button>
           </div>
 
+          {/* Right Side - Action Buttons */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Expires:</label>
-            <select
-              value={activeTab.expiresIn}
-              onChange={(e) => updateActiveTab({ expiresIn: Number(e.target.value) })}
-              className={`
-                px-3 py-1 rounded border text-sm
-                ${isDark 
-                  ? 'bg-[#1e1e1e] border-[#3e3e3e]' 
-                  : 'bg-white border-gray-300'
-                }
-              `}
-            >
-              {EXPIRY_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
+            {activeTab && !activeTab.isReadOnly ? (
+              <>
+                {/* Settings Button (before save) */}
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className={`
+                    p-2 rounded transition-colors
+                    ${sidebarOpen 
+                      ? 'bg-blue-600 text-white' 
+                      : isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'
+                    }
+                  `}
+                  title="Paste Settings"
+                >
+                  <Settings size={18} />
+                </button>
 
-          <button
-            onClick={handleClearAll}
-            className={`
-              ml-auto flex items-center gap-2 px-3 py-1 rounded text-sm transition-colors
-              ${isDark 
-                ? 'hover:bg-red-900/30 text-red-400' 
-                : 'hover:bg-red-50 text-red-600'
-              }
-            `}
-          >
-            <Trash2 size={16} />
-            Clear All
-          </button>
+                {/* Save Button */}
+                <button
+                  onClick={handleSave}
+                  disabled={loading || !activeTab?.content}
+                  className={`
+                    flex items-center gap-2 px-4 py-1.5 rounded font-medium transition-colors text-sm
+                    ${loading || !activeTab?.content
+                      ? 'bg-gray-400 cursor-not-allowed text-gray-700'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }
+                  `}
+                >
+                  {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                  {loading ? 'Saving...' : 'Save Paste'}
+                </button>
+              </>
+            ) : activeTab && activeTab.isReadOnly ? (
+              <>
+                {/* Edit/Fork Button (after save) */}
+                <button
+                  onClick={handleEdit}
+                  className={`
+                    p-2 rounded transition-colors
+                    ${isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'}
+                  `}
+                  title="Fork & Edit"
+                >
+                  <Edit size={18} />
+                </button>
+
+                {/* Actions Button (replaces Save) */}
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className={`
+                    flex items-center gap-2 px-4 py-1.5 rounded font-medium transition-colors text-sm
+                    ${sidebarOpen 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-green-600 hover:bg-green-700 text-white'
+                    }
+                  `}
+                >
+                  <Zap size={16} />
+                  Actions
+                </button>
+              </>
+            ) : null}
+          </div>
         </div>
+
+        {/* Tab Bar */}
+        <TabBar
+          tabs={tabs}
+          activeTab={activeTabId}
+          onTabChange={setActiveTabId}
+          onTabClose={handleCloseTab}
+          onNewTab={handleNewTab}
+          theme={theme}
+        />
+
+        {/* Editor */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab && (
+            <CodeEditor
+              value={activeTab.content}
+              onChange={(value) => updateActiveTab({ content: value })}
+              language={activeTab.language}
+              theme={isDark ? 'vs-dark' : 'light'}
+              readOnly={activeTab.isReadOnly}
+            />
+          )}
+        </div>
+
+        {/* Status Bar */}
+        <div className={`
+          flex items-center justify-between px-4 py-1 text-xs
+          ${isDark ? 'bg-[#007acc] text-white' : 'bg-blue-600 text-white'}
+        `}>
+          <div className="flex items-center gap-4">
+            <span className="font-semibold">
+              {activeTab?.language.toUpperCase() || 'TEXT'}
+            </span>
+            <span>
+              Ln {activeTab?.content.split('\n').length || 0}, 
+              Col {activeTab?.content.length || 0}
+            </span>
+            <span>
+              {activeTab?.content.length || 0} chars
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {activeTab?.isReadOnly ? (
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                Read-only
+              </span>
+            ) : activeTab?.saved ? (
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                Saved
+              </span>
+            ) : (
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
+                Unsaved changes
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Sidebars */}
+      {activeTab && !activeTab.isReadOnly && (
+        <SettingsSidebar
+          tab={activeTab}
+          onUpdate={updateActiveTab}
+          theme={theme}
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
       )}
 
-      {/* Editor */}
-      <div className="flex-1 overflow-hidden">
-        {activeTab && (
-          <CodeEditor
-            value={activeTab.content}
-            onChange={(value) => updateActiveTab({ content: value })}
-            language={activeTab.language}
-            theme={isDark ? 'vs-dark' : 'light'}
-          />
-        )}
-      </div>
-
-      {/* Status Bar */}
-      <div className={`
-        flex items-center justify-between px-4 py-1 text-xs border-t
-        ${isDark 
-          ? 'bg-[#007acc] text-white border-[#007acc]' 
-          : 'bg-blue-600 text-white border-blue-600'
-        }
-      `}>
-        <div className="flex items-center gap-4">
-          <span>
-            {activeTab?.language.toUpperCase() || 'TEXT'}
-          </span>
-          <span>
-            {activeTab?.content.split('\n').length || 0} lines
-          </span>
-          <span>
-            {activeTab?.content.length || 0} characters
-          </span>
-        </div>
-        <div>
-          {activeTab?.saved ? '✓ Saved' : '● Unsaved changes'}
-        </div>
-      </div>
-    </div>
+      {activeTab && activeTab.isReadOnly && activeTab.shortId && (
+        <ActionsSidebar
+          shortId={activeTab.shortId}
+          content={activeTab.content}
+          theme={theme}
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+          onEdit={handleEdit}
+        />
+      )}
+    </Layout>
   )
 }

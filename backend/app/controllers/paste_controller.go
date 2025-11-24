@@ -39,7 +39,7 @@ func (ctrl *PasteController) Create(c *gin.Context) {
 	}
 
 	paste := &models.Paste{
-		Title:     req.Title,
+		Title:     req.Title, // Can be empty, will be set to shortID in service
 		Content:   req.Content,
 		Language:  req.Language,
 		IsPrivate: req.IsPrivate,
@@ -52,6 +52,7 @@ func (ctrl *PasteController) Create(c *gin.Context) {
 		paste.ExpiresAt = &expiresAt
 	}
 
+	// Create paste (service will handle empty title)
 	if err := ctrl.service.CreatePaste(paste); err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to create paste")
 		return

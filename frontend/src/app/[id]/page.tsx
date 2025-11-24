@@ -3,8 +3,21 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import axios from 'axios'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import dynamic from 'next/dynamic'
+import { 
+  Copy, Download, Edit, Share2, Eye, 
+  Calendar, Code, CheckCircle, ExternalLink
+} from 'lucide-react'
+import Layout from '@/components/Layout'
+
+const ViewEditor = dynamic(() => import('@/components/ViewEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full">
+      <div className="animate-pulse">Loading...</div>
+    </div>
+  )
+})
 
 const API_URL = '/api'
 
@@ -14,17 +27,26 @@ export default function PastePage() {
   const [paste, setPaste] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [copied, setCopied] = useState(false)
+  const [urlCopied, setUrlCopied] = useState(false)
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light'
+    if (savedTheme) setTheme(savedTheme)
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme)
+  }, [theme])
 
   useEffect(() => {
     const fetchPaste = async () => {
       try {
-        console.log('Fetching paste:', params.id)
         const response = await axios.get(`${API_URL}/${params.id}`)
-        console.log('Response:', response.data)
         setPaste(response.data.data)
       } catch (err: any) {
-        console.error('Error fetching paste:', err)
-        setError('Paste not found or has expired')
+        setError(err.response?.data?.message || 'Paste not found or has expired')
       } finally {
         setLoading(false)
       }
@@ -35,128 +57,245 @@ export default function PastePage() {
     }
   }, [params.id])
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(paste.content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleCopyURL = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setUrlCopied(true)
+    setTimeout(() => setUrlCopied(false), 2000)
+  }
+
+  const handleFork = () => {
+    // Save to localStorage and redirect to home
+    const tabs = JSON.parse(localStorage.getItem('tabs') || '[]')
+    const newTab = {
+      id: Date.now().toString(),
+      title: `Fork of ${paste.title || 'Untitled'}`,
+      content: paste.content,
+      language: paste.language,
+      saved: false,
+      expiresIn: 0,
+    }
+    tabs.push(newTab)
+    localStorage.setItem('tabs', JSON.stringify(tabs))
+    localStorage.setItem('activeTab', newTab.id)
+    router.push('/')
+  }
+
+  const isDark = theme === 'dark'
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+      <Layout theme={theme} onThemeToggle={() => setTheme(isDark ? 'light' : 'dark')}>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>Loading paste...</p>
+          </div>
         </div>
-      </div>
+      </Layout>
     )
   }
 
   if (error || !paste) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h1 className="text-6xl font-bold text-red-600 mb-4">404</h1>
-          <p className="text-xl text-gray-700 mb-4">{error || 'Paste not found'}</p>
-          <button
-            onClick={() => router.push('/')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition"
-          >
-            Create New Paste
-          </button>
+      <Layout theme={theme} onThemeToggle={() => setTheme(isDark ? 'light' : 'dark')}>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center p-8">
+            <div className="text-6xl mb-4">😢</div>
+            <h1 className="text-3xl font-bold mb-4">Paste Not Found</h1>
+            <p className={`mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              {error || 'This paste does not exist or has expired'}
+            </p>
+            <button
+              onClick={() => router.push('/')}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition"
+            >
+              Create New Paste
+            </button>
+          </div>
         </div>
-      </div>
+      </Layout>
     )
   }
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(paste.content)
-    alert('Content copied to clipboard!')
-  }
-
-  const handleCopyURL = () => {
-    navigator.clipboard.writeText(window.location.href)
-    alert('URL copied to clipboard!')
-  }
-
   return (
-    <main className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold">
-                {paste.title || 'Untitled Paste'}
-              </h1>
-              <button
-                onClick={() => router.push('/')}
-                className="text-sm bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition"
-              >
-                + New Paste
-              </button>
-            </div>
-            
-            <div className="flex flex-wrap gap-4 text-sm text-gray-300">
-              <span>👁️ {paste.views} views</span>
-              <span>•</span>
-              <span>📝 {paste.language}</span>
-              <span>•</span>
-              <span>🕒 {new Date(paste.created_at).toLocaleString()}</span>
+    <Layout 
+      theme={theme} 
+      onThemeToggle={() => setTheme(isDark ? 'light' : 'dark')}
+      showHomeButton={true}
+    >
+      <div className="flex h-full">
+        {/* Main Editor View */}
+        <div className="flex-1 flex flex-col">
+          {/* Title Bar */}
+          <div className={`px-4 py-3 border-b ${
+            isDark ? 'bg-[#252525] border-[#3e3e3e]' : 'bg-gray-50 border-gray-300'
+          }`}>
+            <h1 className="text-xl font-bold mb-2">
+              {paste.title || 'Untitled Paste'}
+            </h1>
+            <div className="flex items-center gap-4 text-sm">
+              <span className={`flex items-center gap-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                <Code size={14} />
+                {paste.language}
+              </span>
+              <span className={`flex items-center gap-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                <Eye size={14} />
+                {paste.views} views
+              </span>
+              <span className={`flex items-center gap-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                <Calendar size={14} />
+                {new Date(paste.created_at).toLocaleString()}
+              </span>
             </div>
           </div>
 
-          {/* Code Content */}
-          <div className="p-0">
-            <SyntaxHighlighter
+          {/* Editor View (Read-only) */}
+          <div className="flex-1 overflow-hidden">
+            <ViewEditor
+              value={paste.content}
               language={paste.language}
-              style={vscDarkPlus}
-              showLineNumbers
-              customStyle={{ margin: 0, borderRadius: 0, fontSize: '14px' }}
-            >
-              {paste.content}
-            </SyntaxHighlighter>
+              theme={isDark ? 'vs-dark' : 'light'}
+            />
           </div>
 
-          {/* Actions */}
-          <div className="p-4 bg-gray-100 flex flex-wrap gap-3">
+          {/* Status Bar */}
+          <div className={`
+            flex items-center justify-between px-4 py-1 text-xs
+            ${isDark ? 'bg-[#007acc] text-white' : 'bg-blue-600 text-white'}
+          `}>
+            <div className="flex items-center gap-4">
+              <span className="font-semibold">{paste.language.toUpperCase()}</span>
+              <span>{paste.content.split('\n').length} lines</span>
+              <span>{paste.content.length} characters</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                Read-only
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar - Actions */}
+        <div className={`w-72 border-l flex flex-col ${
+          isDark ? 'bg-[#252525] border-[#3e3e3e]' : 'bg-gray-50 border-gray-300'
+        }`}>
+          <div className={`px-4 py-3 border-b font-semibold ${
+            isDark ? 'border-[#3e3e3e]' : 'border-gray-300'
+          }`}>
+            Actions
+          </div>
+          
+          <div className="flex-1 p-4 space-y-3">
             <button
               onClick={handleCopy}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+              className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
+                ${isDark 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }
+              `}
             >
-              📋 Copy Content
+              {copied ? <CheckCircle size={18} /> : <Copy size={18} />}
+              {copied ? 'Copied!' : 'Copy Content'}
             </button>
-            
+
             <button
               onClick={handleCopyURL}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition"
+              className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
+                ${isDark 
+                  ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                  : 'bg-white hover:bg-gray-100 border border-gray-300'
+                }
+              `}
             >
-              🔗 Copy URL
+              {urlCopied ? <CheckCircle size={18} /> : <Share2 size={18} />}
+              {urlCopied ? 'URL Copied!' : 'Share URL'}
             </button>
-            
+
+            <button
+              onClick={handleFork}
+              className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
+                ${isDark 
+                  ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                  : 'bg-white hover:bg-gray-100 border border-gray-300'
+                }
+              `}
+            >
+              <Edit size={18} />
+              Fork & Edit
+            </button>
+
             <a
               href={`/${params.id}/raw`}
               target="_blank"
-              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition"
+              className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
+                ${isDark 
+                  ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                  : 'bg-white hover:bg-gray-100 border border-gray-300'
+                }
+              `}
             >
-              📄 View Raw
+              <ExternalLink size={18} />
+              View Raw
+            </a>
+
+            <a
+              href={`/${params.id}/raw?download=1`}
+              download
+              className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
+                ${isDark 
+                  ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                  : 'bg-white hover:bg-gray-100 border border-gray-300'
+                }
+              `}
+            >
+              <Download size={18} />
+              Download
             </a>
           </div>
-        </div>
 
-        {/* Share URL */}
-        <div className="mt-6 p-4 bg-white shadow rounded-lg">
-          <p className="text-sm text-gray-600 mb-2">Share this paste:</p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={typeof window !== 'undefined' ? window.location.href : ''}
-              readOnly
-              className="flex-1 px-3 py-2 border border-gray-300 rounded bg-gray-50 font-mono text-sm"
-            />
-            <button
-              onClick={handleCopyURL}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
-            >
-              Copy
-            </button>
+          {/* Share Section */}
+          <div className={`p-4 border-t ${
+            isDark ? 'border-[#3e3e3e]' : 'border-gray-300'
+          }`}>
+            <p className="text-sm font-semibold mb-2">Share this paste</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={typeof window !== 'undefined' ? window.location.href : ''}
+                readOnly
+                onClick={(e) => e.currentTarget.select()}
+                className={`
+                  flex-1 px-3 py-2 rounded border text-xs font-mono
+                  ${isDark 
+                    ? 'bg-[#1e1e1e] border-[#3e3e3e]' 
+                    : 'bg-white border-gray-300'
+                  }
+                `}
+              />
+              <button
+                onClick={handleCopyURL}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition text-xs"
+              >
+                Copy
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </main>
+    </Layout>
   )
 }
