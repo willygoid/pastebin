@@ -1,17 +1,18 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
 
 export default function Home() {
+  const router = useRouter()
   const [content, setContent] = useState('')
   const [title, setTitle] = useState('')
   const [language, setLanguage] = useState('text')
   const [expiresIn, setExpiresIn] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,10 +27,11 @@ export default function Home() {
         is_private: false
       })
 
-      setResult(response.data.data)
-      setContent('')
-      setTitle('')
-    } catch (error) {
+      const shortID = response.data.data.id
+      
+      // Redirect ke short URL
+      router.push(`/${shortID}`)
+    } catch (error: any) {
       console.error('Error creating paste:', error)
       alert('Failed to create paste')
     } finally {
@@ -40,21 +42,12 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
+        <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">
           📋 Pastebin
         </h1>
-
-        {result && (
-          <div className="mb-6 p-4 bg-green-100 border border-green-400 rounded">
-            <p className="text-green-800 mb-2">Paste created successfully!</p>
-            <a 
-              href={`/paste/${result.id}`}
-              className="text-blue-600 hover:underline"
-            >
-              {window.location.origin}/paste/{result.id}
-            </a>
-          </div>
-        )}
+        <p className="text-center text-gray-600 mb-8">
+          Share your code and text snippets
+        </p>
 
         <form onSubmit={handleSubmit} className="bg-white shadow-md rounded-lg p-6">
           <div className="mb-4">
@@ -103,6 +96,8 @@ export default function Home() {
                 <option value="html">HTML</option>
                 <option value="css">CSS</option>
                 <option value="json">JSON</option>
+                <option value="sql">SQL</option>
+                <option value="bash">Bash</option>
               </select>
             </div>
 

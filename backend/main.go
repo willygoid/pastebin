@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,9 @@ func main() {
 	config.ConnectDatabase()
 	config.ConnectRedis()
 
+	// Start background cleanup job
+	go startCleanupJob()
+
 	// Initialize Gin
 	if os.Getenv("GO_ENV") == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -32,14 +36,14 @@ func main() {
 
 	r := gin.Default()
 
-	// CORS middleware - ALLOW ALL ORIGINS
+	// CORS middleware
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Type"},
-		AllowCredentials: false,     // Set to false when using "*" origin
-		MaxAge:           12 * 3600, // 12 hours
+		AllowCredentials: false,
+		MaxAge:           12 * 3600,
 	}))
 
 	// Setup routes
@@ -54,5 +58,23 @@ func main() {
 	fmt.Printf("Server running on port %s\n", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
+	}
+}
+
+// Background job to cleanup expired pastes
+func startCleanupJob() {
+	ticker := time.NewTicker(1 * time.Hour) // Run every hour
+	defer ticker.Stop()
+
+	fmt.Println("Cleanup job started - running every hour")
+
+	for range ticker.C {
+		fmt.Println("Running cleanup job...")
+		err := config.CleanupExpiredPastes()
+		if err != nil {
+			log.Printf("Cleanup error: %v", err)
+		} else {
+			fmt.Println("Cleanup completed successfully")
+		}
 	}
 }

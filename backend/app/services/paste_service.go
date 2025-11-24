@@ -8,6 +8,7 @@ import (
 	"pastebin/app/models"
 	"pastebin/app/repositories"
 	"pastebin/config"
+	"pastebin/utils"
 )
 
 type PasteService struct {
@@ -21,7 +22,16 @@ func NewPasteService() *PasteService {
 }
 
 func (s *PasteService) CreatePaste(paste *models.Paste) error {
+	// Create paste first to get ID
 	if err := s.repo.Create(paste); err != nil {
+		return err
+	}
+
+	// Generate short ID from numeric ID
+	paste.ShortID = utils.GenerateShortID(paste.ID)
+
+	// Update with short ID
+	if err := s.repo.Update(paste); err != nil {
 		return err
 	}
 
@@ -30,28 +40,28 @@ func (s *PasteService) CreatePaste(paste *models.Paste) error {
 	return nil
 }
 
-func (s *PasteService) GetPaste(id string) (*models.Paste, error) {
+func (s *PasteService) GetPaste(shortID string) (*models.Paste, error) {
 	// Try to get from cache first
-	if paste, err := s.cacheGet(id); err == nil && paste != nil {
-		s.repo.IncrementViews(id)
+	if paste, err := s.cacheGet(shortID); err == nil && paste != nil {
+		s.repo.IncrementViews(shortID)
 		return paste, nil
 	}
 
 	// Get from database
-	paste, err := s.repo.FindByID(id)
+	paste, err := s.repo.FindByShortID(shortID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check expiration
 	if paste.ExpiresAt != nil && paste.ExpiresAt.Before(time.Now()) {
-		s.repo.Delete(id)
-		s.cacheDelete(id)
+		s.repo.Delete(shortID)
+		s.cacheDelete(shortID)
 		return nil, fmt.Errorf("paste has expired")
 	}
 
 	// Update views
-	s.repo.IncrementViews(id)
+	s.repo.IncrementViews(shortID)
 	paste.Views++
 
 	// Cache it
@@ -64,14 +74,14 @@ func (s *PasteService) GetRecentPastes(limit int) ([]models.Paste, error) {
 	return s.repo.FindAll(limit)
 }
 
-func (s *PasteService) DeletePaste(id string) error {
-	s.cacheDelete(id)
-	return s.repo.Delete(id)
+func (s *PasteService) DeletePaste(shortID string) error {
+	s.cacheDelete(shortID)
+	return s.repo.Delete(shortID)
 }
 
 // Cache helpers
 func (s *PasteService) cacheSet(paste *models.Paste) {
-	key := fmt.Sprintf("paste:%s", paste.ID)
+	key := fmt.Sprintf("paste:%s", paste.ShortID)
 	data, _ := json.Marshal(paste)
 
 	expiration := 24 * time.Hour
@@ -82,8 +92,8 @@ func (s *PasteService) cacheSet(paste *models.Paste) {
 	config.RedisClient.Set(config.Ctx, key, data, expiration)
 }
 
-func (s *PasteService) cacheGet(id string) (*models.Paste, error) {
-	key := fmt.Sprintf("paste:%s", id)
+func (s *PasteService) cacheGet(shortID string) (*models.Paste, error) {
+	key := fmt.Sprintf("paste:%s", shortID)
 	data, err := config.RedisClient.Get(config.Ctx, key).Result()
 	if err != nil {
 		return nil, err
@@ -97,7 +107,7 @@ func (s *PasteService) cacheGet(id string) (*models.Paste, error) {
 	return &paste, nil
 }
 
-func (s *PasteService) cacheDelete(id string) {
-	key := fmt.Sprintf("paste:%s", id)
+func (s *PasteService) cacheDelete(shortID string) {
+	key := fmt.Sprintf("paste:%s", shortID)
 	config.RedisClient.Del(config.Ctx, key)
 }

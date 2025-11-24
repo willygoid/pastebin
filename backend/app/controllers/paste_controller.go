@@ -61,9 +61,9 @@ func (ctrl *PasteController) Create(c *gin.Context) {
 }
 
 func (ctrl *PasteController) Get(c *gin.Context) {
-	id := c.Param("id")
+	shortID := c.Param("id")
 
-	paste, err := ctrl.service.GetPaste(id)
+	paste, err := ctrl.service.GetPaste(shortID)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusNotFound, "Paste not found")
 		return
@@ -90,9 +90,9 @@ func (ctrl *PasteController) GetRecent(c *gin.Context) {
 }
 
 func (ctrl *PasteController) Delete(c *gin.Context) {
-	id := c.Param("id")
+	shortID := c.Param("id")
 
-	if err := ctrl.service.DeletePaste(id); err != nil {
+	if err := ctrl.service.DeletePaste(shortID); err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete paste")
 		return
 	}
@@ -101,14 +101,22 @@ func (ctrl *PasteController) Delete(c *gin.Context) {
 }
 
 func (ctrl *PasteController) GetRaw(c *gin.Context) {
-	id := c.Param("id")
+	shortID := c.Param("id")
 
-	paste, err := ctrl.service.GetPaste(id)
+	paste, err := ctrl.service.GetPaste(shortID)
 	if err != nil {
 		c.String(http.StatusNotFound, "Paste not found")
 		return
 	}
 
-	c.Header("Content-Type", "text/plain")
+	// Set content type to plain text
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+
+	// Disable caching for accurate view count
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
+
+	// Return pure text content
 	c.String(http.StatusOK, paste.Content)
 }
