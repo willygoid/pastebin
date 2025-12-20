@@ -45,13 +45,11 @@ export default function ActionsSidebar({
 
   return (
     <>
-      {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
         onClick={onToggle}
       />
 
-      {/* Sidebar */}
       <div className={`
         fixed right-0 top-0 h-full w-80 z-50 flex flex-col shadow-2xl
         transform transition-transform duration-300 ease-in-out
@@ -112,7 +110,10 @@ export default function ActionsSidebar({
           </button>
 
           <button
-            onClick={onEdit}
+            onClick={() => {
+              onEdit()
+              onToggle()
+            }}
             className={`
               w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
               ${isDark 
@@ -122,7 +123,7 @@ export default function ActionsSidebar({
             `}
           >
             <Edit size={18} />
-            Edit / Create New
+            Fork to New Tab
           </button>
 
           <a

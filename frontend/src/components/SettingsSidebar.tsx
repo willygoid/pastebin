@@ -9,6 +9,7 @@ interface Tab {
   language: string
   saved: boolean
   expiresIn: number
+  shortId?: string
 }
 
 interface SettingsSidebarProps {
@@ -61,6 +62,9 @@ export default function SettingsSidebar({
 
   if (!isOpen) return null
 
+  // Get display value for title input
+  const titleDisplayValue = tab.title === tab.shortId ? '' : tab.title
+
   return (
     <>
       {/* Backdrop */}
@@ -99,14 +103,14 @@ export default function SettingsSidebar({
             </label>
             <input
               type="text"
-              value={tab.title}
+              value={titleDisplayValue}
               onChange={(e) => onUpdate({ title: e.target.value })}
-              placeholder="Enter paste title"
+              placeholder={tab.shortId ? `Default: ${tab.shortId}` : "Enter paste title"}
               className={`
                 w-full px-3 py-2 rounded border text-sm
                 ${isDark 
-                  ? 'bg-[#1e1e1e] border-[#3e3e3e] focus:border-blue-500' 
-                  : 'bg-white border-gray-300 focus:border-blue-500'
+                  ? 'bg-[#1e1e1e] border-[#3e3e3e] focus:border-blue-500 placeholder:text-gray-600' 
+                  : 'bg-white border-gray-300 focus:border-blue-500 placeholder:text-gray-400'
                 }
                 focus:outline-none
               `}

@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import dynamic from 'next/dynamic'
 import { Toaster, toast } from 'react-hot-toast'
-import { 
-  Save, Settings, Trash2, Loader2, Edit, Zap
-} from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import Layout from '@/components/Layout'
 import TabBar from '@/components/TabBar'
 import SettingsSidebar from '@/components/SettingsSidebar'
@@ -33,6 +31,7 @@ interface Tab {
   expiresIn: number
   shortId?: string
   isReadOnly?: boolean
+  originalContent?: string
 }
 
 export default function Home() {
@@ -88,6 +87,11 @@ export default function Home() {
           handleSave()
         }
       }
+      
+      if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+        e.preventDefault()
+        handleNewTab()
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -141,61 +145,103 @@ export default function Home() {
 
   const handleSave = async () => {
     if (!activeTab || !activeTab.content.trim()) {
-      toast.error('Please enter some content')
-      return
+        toast.error('Please enter some content')
+        return
     }
 
     setLoading(true)
-    const loadingToast = toast.loading('Creating paste...')
+    
+    const isUpdating = !!activeTab.shortId
+    const loadingToast = toast.loading(isUpdating ? 'Creating new version...' : 'Creating paste...')
 
     try {
-      const response = await axios.post(`${API_URL}/pastes`, {
-        title: activeTab.title || undefined,
+        const shouldSendTitle = activeTab.title && activeTab.title !== activeTab.shortId
+        
+        console.log('Save logic:', {
+        currentTitle: activeTab.title,
+        currentShortId: activeTab.shortId,
+        shouldSendTitle,
+        willSendTitle: shouldSendTitle ? activeTab.title : undefined
+        })
+
+        // Always POST to create new paste
+        const response = await axios.post(`${API_URL}/pastes`, {
+        title: shouldSendTitle ? activeTab.title : undefined,
         content: activeTab.content,
         language: activeTab.language,
         expires_in: activeTab.expiresIn,
         is_private: false
-      })
-
-      const data = response.data.data
-      const shortId = data.id
-      const finalTitle = data.title || shortId
-
-      setTabs(tabs.map(tab => 
-        tab.id === activeTabId 
-          ? { 
-              ...tab, 
-              saved: true, 
-              shortId: shortId,
-              title: finalTitle,
-              isReadOnly: true 
-            }
-          : tab
-      ))
-
-      toast.success('Paste created successfully!', { id: loadingToast })
-      
-      setSidebarOpen(true)
-
-      const url = `${window.location.origin}/${shortId}`
-      navigator.clipboard.writeText(url)
-      
-      setTimeout(() => {
-        toast.success('URL copied to clipboard!', {
-          icon: '📋'
         })
-      }, 500)
+
+        const data = response.data.data
+        const newShortId = data.id
+        const newTitle = data.title || newShortId
+
+        console.log('Save response:', {
+        oldShortId: activeTab.shortId,
+        newShortId: newShortId,
+        returnedTitle: data.title,
+        finalTitle: newTitle
+        })
+
+        // Create completely new tab object to force re-render
+        setTabs(prevTabs => prevTabs.map(tab => {
+        if (tab.id === activeTabId) {
+            // Return completely new object
+            return {
+            id: tab.id,
+            title: newTitle,
+            content: tab.content,
+            language: tab.language,
+            saved: true,
+            expiresIn: tab.expiresIn,
+            shortId: newShortId,
+            isReadOnly: true,
+            originalContent: tab.content
+            }
+        }
+        return tab
+        }))
+
+        if (isUpdating) {
+        toast.success(`New version created: ${newShortId}`, { id: loadingToast })
+        } else {
+        toast.success(`Paste created: ${newShortId}`, { id: loadingToast })
+        }
+        
+        setSidebarOpen(true)
 
     } catch (error: any) {
-      toast.error('Failed to create paste: ' + (error.response?.data?.message || error.message), {
+        console.error('Save error:', error)
+        toast.error('Failed to save paste: ' + (error.response?.data?.message || error.message), {
         id: loadingToast
-      })
+        })
     } finally {
-      setLoading(false)
+        setLoading(false)
     }
-  }
+}
 
-  const handleEdit = () => {
+  const handleEditCurrent = () => {
+    if (activeTab && activeTab.isReadOnly) {
+        setTabs(tabs.map(tab => 
+        tab.id === activeTabId 
+            ? { 
+                ...tab, 
+                isReadOnly: false, 
+                saved: false,
+                originalContent: tab.content,
+                // Clear title if it's same as shortId (so backend will use new shortId as title)
+                title: tab.title === tab.shortId ? '' : tab.title
+            }
+            : tab
+        ))
+        setSidebarOpen(false)
+        toast.success('Edit mode activated')
+    }
+    }
+
+
+  const handleForkToNew = () => {
     if (activeTab && activeTab.shortId) {
       const newTab: Tab = {
         id: Date.now().toString(),
@@ -222,19 +268,40 @@ export default function Home() {
 
   const isDark = theme === 'dark'
 
+  // Determine what to show in navbar
+  const showActionsButton = !!(activeTab?.isReadOnly && activeTab?.shortId)
+  const showEditButton = !!(activeTab?.isReadOnly && activeTab?.shortId)
+  const showSaveSettings = !!(!activeTab?.isReadOnly)
+
   return (
     <Layout 
       theme={theme} 
       onThemeToggle={() => setTheme(isDark ? 'light' : 'dark')}
+      showSaveButton={showSaveSettings}
+      showSettingsButton={showSaveSettings}
+      showActionsButton={showActionsButton}
+      showEditButton={showEditButton}
+      onSave={handleSave}
+      onSettingsToggle={() => setSidebarOpen(!sidebarOpen)}
+      onActionsToggle={() => setSidebarOpen(!sidebarOpen)}
+      onEdit={handleEditCurrent}
+      saveLoading={loading}
+      saveDisabled={!activeTab?.content}
+      saveLabel={activeTab?.shortId ? 'Save as New' : 'Save Paste'}
+      settingsActive={sidebarOpen}
+      actionsActive={sidebarOpen}
     >
+      {/* Toast Notification - Kanan Bawah */}
       <Toaster 
-        position="top-right"
+        position="bottom-right"
         toastOptions={{
           duration: 3000,
           style: {
             background: isDark ? '#2d2d2d' : '#fff',
             color: isDark ? '#fff' : '#000',
             border: `1px solid ${isDark ? '#3e3e3e' : '#e5e5e5'}`,
+            fontSize: '14px',
+            padding: '12px 16px',
           },
           success: {
             iconTheme: {
@@ -248,101 +315,16 @@ export default function Home() {
               secondary: '#fff',
             },
           },
+          loading: {
+            iconTheme: {
+              primary: '#3b82f6',
+              secondary: '#fff',
+            },
+          },
         }}
       />
 
-      {/* Main Editor Area - Full Width */}
       <div className="flex-1 flex flex-col h-full">
-        {/* Action Bar */}
-        <div className={`flex items-center justify-between px-4 py-2 border-b ${
-          isDark ? 'bg-[#252525] border-[#3e3e3e]' : 'bg-gray-50 border-gray-300'
-        }`}>
-          {/* Left Side */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleClearAll}
-              className={`
-                flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors
-                ${isDark 
-                  ? 'hover:bg-red-900/30 text-red-400' 
-                  : 'hover:bg-red-50 text-red-600'
-                }
-              `}
-              title="Clear All Tabs"
-            >
-              <Trash2 size={16} />
-              Clear All
-            </button>
-          </div>
-
-          {/* Right Side - Action Buttons */}
-          <div className="flex items-center gap-2">
-            {activeTab && !activeTab.isReadOnly ? (
-              <>
-                {/* Settings Button (before save) */}
-                <button
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className={`
-                    p-2 rounded transition-colors
-                    ${sidebarOpen 
-                      ? 'bg-blue-600 text-white' 
-                      : isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'
-                    }
-                  `}
-                  title="Paste Settings"
-                >
-                  <Settings size={18} />
-                </button>
-
-                {/* Save Button */}
-                <button
-                  onClick={handleSave}
-                  disabled={loading || !activeTab?.content}
-                  className={`
-                    flex items-center gap-2 px-4 py-1.5 rounded font-medium transition-colors text-sm
-                    ${loading || !activeTab?.content
-                      ? 'bg-gray-400 cursor-not-allowed text-gray-700'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                    }
-                  `}
-                >
-                  {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                  {loading ? 'Saving...' : 'Save Paste'}
-                </button>
-              </>
-            ) : activeTab && activeTab.isReadOnly ? (
-              <>
-                {/* Edit/Fork Button (after save) */}
-                <button
-                  onClick={handleEdit}
-                  className={`
-                    p-2 rounded transition-colors
-                    ${isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'}
-                  `}
-                  title="Fork & Edit"
-                >
-                  <Edit size={18} />
-                </button>
-
-                {/* Actions Button (replaces Save) */}
-                <button
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className={`
-                    flex items-center gap-2 px-4 py-1.5 rounded font-medium transition-colors text-sm
-                    ${sidebarOpen 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-green-600 hover:bg-green-700 text-white'
-                    }
-                  `}
-                >
-                  <Zap size={16} />
-                  Actions
-                </button>
-              </>
-            ) : null}
-          </div>
-        </div>
-
         {/* Tab Bar */}
         <TabBar
           tabs={tabs}
@@ -350,6 +332,7 @@ export default function Home() {
           onTabChange={setActiveTabId}
           onTabClose={handleCloseTab}
           onNewTab={handleNewTab}
+          onClearAll={handleClearAll}
           theme={theme}
         />
 
@@ -382,6 +365,12 @@ export default function Home() {
             <span>
               {activeTab?.content.length || 0} chars
             </span>
+            {activeTab?.shortId && (
+              <>
+                <span>•</span>
+                <span className="font-mono">{activeTab.shortId}</span>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {activeTab?.isReadOnly ? (
@@ -422,7 +411,7 @@ export default function Home() {
           theme={theme}
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
-          onEdit={handleEdit}
+          onEdit={handleForkToNew}
         />
       )}
     </Layout>

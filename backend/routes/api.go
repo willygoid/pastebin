@@ -29,23 +29,17 @@ func SetupRoutes(r *gin.Engine) {
 			})
 		})
 
-		// Paste routes
+		// Paste controller
 		pasteCtrl := controllers.NewPasteController()
 
-		// Create paste
-		api.POST("/pastes", pasteCtrl.Create)
-
-		// Get recent pastes
-		api.GET("/pastes", pasteCtrl.GetRecent)
+		// Paste CRUD routes
+		api.POST("/pastes", pasteCtrl.Create)    // Create new paste
+		api.GET("/pastes", pasteCtrl.GetRecent)  // Get recent pastes
+		api.PUT("/pastes/:id", pasteCtrl.Update) // Update paste by shortID
 
 		// Short URL routes
-		api.GET("/:id", pasteCtrl.Get)
-		api.GET("/:id/raw", pasteCtrl.GetRaw)
-		api.DELETE("/:id", pasteCtrl.Delete)
+		api.GET("/:id", pasteCtrl.Get)        // Get paste by shortID
+		api.GET("/:id/raw", pasteCtrl.GetRaw) // Get raw paste
+		api.DELETE("/:id", pasteCtrl.Delete)  // Delete paste
 	}
-
-	// Root level short URL routes (untuk akses langsung tanpa /api)
-	pasteCtrl := controllers.NewPasteController()
-	r.GET("/:id", pasteCtrl.Get)
-	r.GET("/:id/raw", pasteCtrl.GetRaw)
 }

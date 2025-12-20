@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -8,7 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"pastebin/app/models"
+	"pastebin/app/repositories"
 	"pastebin/app/services"
+	"pastebin/config"
 	"pastebin/utils"
 )
 
@@ -71,6 +75,67 @@ func (ctrl *PasteController) Get(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, http.StatusOK, "Paste retrieved successfully", paste)
+}
+
+func (ctrl *PasteController) Update(c *gin.Context) {
+	shortID := c.Param("id")
+
+	log.Printf("Update request received for shortID: %s", shortID)
+
+	var req CreatePasteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("Invalid request body: %v", err)
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	log.Printf("Request data - Title: %s, Language: %s, Content length: %d",
+		req.Title, req.Language, len(req.Content))
+
+	// Get existing paste
+	paste, err := ctrl.service.GetPaste(shortID)
+	if err != nil {
+		log.Printf("Paste not found: %s, Error: %v", shortID, err)
+		utils.ErrorResponse(c, http.StatusNotFound, "Paste not found")
+		return
+	}
+
+	log.Printf("Found existing paste: %s", paste.ShortID)
+
+	// Update fields
+	paste.Content = req.Content
+	paste.Language = req.Language
+
+	// Update title
+	if req.Title != "" {
+		paste.Title = req.Title
+	} else {
+		paste.Title = paste.ShortID
+	}
+
+	// Update expiration if provided
+	if req.ExpiresIn > 0 {
+		expiresAt := time.Now().Add(time.Duration(req.ExpiresIn) * time.Hour)
+		paste.ExpiresAt = &expiresAt
+	}
+
+	// Get repository instance
+	repo := repositories.NewPasteRepository()
+
+	// Save updates
+	if err := repo.Update(paste); err != nil {
+		log.Printf("Failed to update paste: %v", err)
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to update paste")
+		return
+	}
+
+	log.Printf("Paste updated successfully: %s", paste.ShortID)
+
+	// Clear cache
+	cacheKey := fmt.Sprintf("paste:%s", shortID)
+	config.RedisClient.Del(config.Ctx, cacheKey)
+
+	utils.SuccessResponse(c, http.StatusOK, "Paste updated successfully", paste)
 }
 
 func (ctrl *PasteController) GetRecent(c *gin.Context) {

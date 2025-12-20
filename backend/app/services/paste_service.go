@@ -30,7 +30,7 @@ func (s *PasteService) CreatePaste(paste *models.Paste) error {
 	// Generate short ID from numeric ID
 	paste.ShortID = utils.GenerateShortID(paste.ID)
 
-	// If title is empty, use short ID
+	// If title is empty, use short ID as title
 	if paste.Title == "" {
 		paste.Title = paste.ShortID
 	}
@@ -53,6 +53,18 @@ func (s *PasteService) UpdatePasteTitle(shortID string, title string) error {
 
 	paste.Title = title
 	return s.repo.Update(paste)
+}
+
+func (s *PasteService) UpdatePasteContent(paste *models.Paste) error {
+	// Update in database
+	if err := s.repo.Update(paste); err != nil {
+		return err
+	}
+
+	// Update cache
+	s.cacheSet(paste)
+
+	return nil
 }
 
 func (s *PasteService) GetPaste(shortID string) (*models.Paste, error) {
@@ -92,6 +104,10 @@ func (s *PasteService) GetRecentPastes(limit int) ([]models.Paste, error) {
 func (s *PasteService) DeletePaste(shortID string) error {
 	s.cacheDelete(shortID)
 	return s.repo.Delete(shortID)
+}
+
+func (s *PasteService) ClearCache(shortID string) {
+	s.cacheDelete(shortID)
 }
 
 // Cache helpers

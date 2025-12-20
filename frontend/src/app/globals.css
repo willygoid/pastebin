@@ -21,10 +21,28 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar for tab bar - ULTRA THIN */
+.tab-scrollbar::-webkit-scrollbar {
+  height: 2px;
+}
+
+.tab-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tab-scrollbar::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 2px;
+}
+
+.tab-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+/* Regular scrollbar - Thin */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -33,7 +51,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: #424242;
-  border-radius: 5px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
