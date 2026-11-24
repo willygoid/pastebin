@@ -297,9 +297,9 @@ export default function Home() {
         toastOptions={{
           duration: 3000,
           style: {
-            background: isDark ? '#2d2d2d' : '#fff',
+            background: isDark ? '#2f2c3c' : '#fff',
             color: isDark ? '#fff' : '#000',
-            border: `1px solid ${isDark ? '#3e3e3e' : '#e5e5e5'}`,
+            border: `1px solid ${isDark ? '#3e3b50' : '#e5e5e5'}`,
             fontSize: '14px',
             padding: '12px 16px',
           },
@@ -343,7 +343,7 @@ export default function Home() {
               value={activeTab.content}
               onChange={(value) => updateActiveTab({ content: value })}
               language={activeTab.language}
-              theme={isDark ? 'vs-dark' : 'light'}
+              theme={isDark ? 'dracula-pro' : 'light'}
               readOnly={activeTab.isReadOnly}
             />
           )}
@@ -352,7 +352,7 @@ export default function Home() {
         {/* Status Bar */}
         <div className={`
           flex items-center justify-between px-4 py-1 text-xs
-          ${isDark ? 'bg-[#007acc] text-white' : 'bg-blue-600 text-white'}
+          ${isDark ? 'bg-[#2f2c3c] text-white' : 'bg-blue-600 text-white'}
         `}>
           <div className="flex items-center gap-4">
             <span className="font-semibold">

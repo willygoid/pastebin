@@ -2,9 +2,10 @@
 
 import { ReactNode, useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  FileText, Moon, Sun, User, LogIn, UserPlus, Save, Settings, Loader2, Zap, Edit
+import {
+  Moon, Sun, User, LogIn, UserPlus, Save, Settings, Loader2, Zap, Edit
 } from 'lucide-react'
+import { logoFont } from '@/lib/fonts'
 
 interface LayoutProps {
   children: ReactNode
@@ -26,9 +27,9 @@ interface LayoutProps {
   actionsActive?: boolean
 }
 
-export default function Layout({ 
-  children, 
-  theme, 
+export default function Layout({
+  children,
+  theme,
   onThemeToggle,
   showHomeButton = false,
   showSaveButton = false,
@@ -62,19 +63,17 @@ export default function Layout({
   }, [])
 
   return (
-    <div className={`flex flex-col h-screen ${
-      isDark ? 'bg-[#1e1e1e] text-white' : 'bg-white text-gray-900'
-    }`}>
-      {/* Compact Top Menu Bar */}
-      <div className={`flex items-center justify-between px-4 py-1.5 border-b ${
-        isDark ? 'bg-[#2d2d2d] border-[#3e3e3e]' : 'bg-gray-100 border-gray-300'
+    <div className={`flex flex-col h-screen ${isDark ? 'bg-[#22212c] text-white' : 'bg-white text-gray-900'
       }`}>
+      {/* Top Menu Bar */}
+      <div className={`flex items-center justify-between px-4 py-1.5 border-b ${isDark ? 'bg-[#2f2c3c] border-[#3e3b50]' : 'bg-gray-100 border-gray-300'
+        }`}>
         <button
           onClick={() => router.push('/')}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <FileText size={20} className="text-blue-500" />
-          <span className="text-lg font-bold">Pastebin</span>
+          <img src="/logo-mark.png" alt="Pastefel" className="h-5 w-5" />
+          <span className={`text-lg ${logoFont.className}`}>Paste<span className="pastefel-gradient">fel</span></span>
         </button>
 
         {/* Right Side Actions */}
@@ -85,9 +84,9 @@ export default function Layout({
               onClick={onSettingsToggle}
               className={`
                 p-1.5 rounded transition-colors
-                ${settingsActive 
-                  ? 'bg-blue-600 text-white' 
-                  : isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'
+                ${settingsActive
+                  ? 'bg-blue-600 text-white'
+                  : isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-200'
                 }
               `}
               title="Paste Settings"
@@ -120,7 +119,7 @@ export default function Layout({
               onClick={onEdit}
               className={`
                 p-1.5 rounded transition-colors
-                ${isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'}
+                ${isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-200'}
               `}
               title="Edit This Paste"
             >
@@ -134,8 +133,8 @@ export default function Layout({
               onClick={onActionsToggle}
               className={`
                 flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors
-                ${actionsActive 
-                  ? 'bg-blue-600 text-white' 
+                ${actionsActive
+                  ? 'bg-blue-600 text-white'
                   : 'bg-green-600 hover:bg-green-700 text-white'
                 }
               `}
@@ -151,12 +150,12 @@ export default function Layout({
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               className={`
                 p-1.5 rounded-full transition-colors
-                ${isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'}
+                ${isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-200'}
               `}
             >
               <div className={`
                 w-7 h-7 rounded-full flex items-center justify-center
-                ${isDark ? 'bg-[#3e3e3e]' : 'bg-gray-300'}
+                ${isDark ? 'bg-[#3e3b50]' : 'bg-gray-300'}
               `}>
                 <User size={16} />
               </div>
@@ -166,43 +165,41 @@ export default function Layout({
             {userMenuOpen && (
               <div className={`
                 absolute right-0 mt-2 w-48 rounded-lg shadow-lg border z-50
-                ${isDark 
-                  ? 'bg-[#2d2d2d] border-[#3e3e3e]' 
+                ${isDark
+                  ? 'bg-[#2f2c3c] border-[#3e3b50]'
                   : 'bg-white border-gray-200'
                 }
               `}>
                 <div className="py-1">
                   <button
-                    onClick={() => setUserMenuOpen(false)}
+                    onClick={() => {
+                      setUserMenuOpen(false)
+                      router.push('/login')
+                    }}
                     className={`
                       w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors
-                      ${isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-100'}
+                      ${isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-100'}
                     `}
-                    disabled
                   >
                     <LogIn size={16} />
                     Login
-                    <span className={`ml-auto text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      Soon
-                    </span>
                   </button>
 
                   <button
-                    onClick={() => setUserMenuOpen(false)}
+                    onClick={() => {
+                      setUserMenuOpen(false)
+                      router.push('/register')
+                    }}
                     className={`
                       w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors
-                      ${isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-100'}
+                      ${isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-100'}
                     `}
-                    disabled
                   >
                     <UserPlus size={16} />
                     Register
-                    <span className={`ml-auto text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      Soon
-                    </span>
                   </button>
 
-                  <div className={`my-1 border-t ${isDark ? 'border-[#3e3e3e]' : 'border-gray-200'}`} />
+                  <div className={`my-1 border-t ${isDark ? 'border-[#3e3b50]' : 'border-gray-200'}`} />
 
                   <button
                     onClick={() => {
@@ -211,7 +208,7 @@ export default function Layout({
                     }}
                     className={`
                       w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors
-                      ${isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-100'}
+                      ${isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-100'}
                     `}
                   >
                     {isDark ? <Sun size={16} /> : <Moon size={16} />}

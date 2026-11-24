@@ -46,6 +46,72 @@ func (r *PasteRepository) FindAll(limit int) ([]models.Paste, error) {
 	return pastes, err
 }
 
+// GetAllByUser returns the pastes owned by a specific user, with pagination and optional search
+func (r *PasteRepository) GetAllByUser(userID uint, limit, offset int, search string) ([]models.Paste, int64, error) {
+	var pastes []models.Paste
+	var total int64
+
+	filter := func(db *gorm.DB) *gorm.DB {
+		db = db.Model(&models.Paste{}).Where("deleted_at IS NULL AND user_id = ?", userID)
+		if search != "" {
+			like := "%" + search + "%"
+			db = db.Where("title ILIKE ? OR short_id ILIKE ?", like, like)
+		}
+		return db
+	}
+
+	if err := filter(config.DB).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := filter(config.DB).
+		Select("id, short_id, title, language, views, is_private, expires_at, user_id, created_at").
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&pastes).Error
+
+	return pastes, total, err
+}
+
+// IsOwnedBy checks whether the paste with the given short ID belongs to userID
+func (r *PasteRepository) IsOwnedBy(shortID string, userID uint) (bool, error) {
+	var count int64
+	err := config.DB.Model(&models.Paste{}).
+		Where("short_id = ? AND user_id = ? AND deleted_at IS NULL", shortID, userID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+// GetAllAdmin returns all pastes (including private ones) with pagination and optional search, for admin use
+func (r *PasteRepository) GetAllAdmin(limit, offset int, search string) ([]models.Paste, int64, error) {
+	var pastes []models.Paste
+	var total int64
+
+	filter := func(db *gorm.DB) *gorm.DB {
+		db = db.Model(&models.Paste{}).Where("deleted_at IS NULL")
+		if search != "" {
+			like := "%" + search + "%"
+			db = db.Where("title ILIKE ? OR short_id ILIKE ?", like, like)
+		}
+		return db
+	}
+
+	if err := filter(config.DB).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := filter(config.DB).
+		Select("id, short_id, title, language, views, is_private, expires_at, user_id, created_at").
+		Preload("Owner").
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&pastes).Error
+
+	return pastes, total, err
+}
+
 func (r *PasteRepository) FindPopular(limit int) ([]models.Paste, error) {
 	var pastes []models.Paste
 	err := config.DB.

@@ -125,6 +125,7 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
     depends_on:
       - backend
     networks:
@@ -140,13 +141,10 @@ services:
     container_name: ${APP_NAME}_nginx
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${NGINX_PORT:-80}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/certbot/conf:/etc/letsencrypt:ro
-      - ./nginx/certbot/www:/var/www/certbot:ro
     depends_on:
       - backend
       - frontend
@@ -158,14 +156,18 @@ services:
       timeout: 10s
       retries: 3
 
-  # Certbot for SSL
-  certbot:
-    image: certbot/certbot:latest
-    container_name: ${APP_NAME}_certbot
-    volumes:
-      - ./nginx/certbot/conf:/etc/letsencrypt
-      - ./nginx/certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+  # Cloudflare Tunnel. Idle (sleep infinity) selama USE_TUNNEL != true, jadi
+  # aman ikut `up` di dev. Public Hostname di Zero Trust Dashboard arahkan ke
+  # service http://nginx:80 (nama service, bukan localhost).
+  cloudflared:
+    build:
+      context: .
+      dockerfile: docker/tunnel/Dockerfile
+    container_name: ${APP_NAME}_cloudflared
+    restart: unless-stopped
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+      - USE_TUNNEL=${USE_TUNNEL:-false}
     depends_on:
       - nginx
     networks:

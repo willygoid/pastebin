@@ -134,7 +134,7 @@ export default function PastePage() {
         <div className="flex-1 flex flex-col">
           {/* Title Bar */}
           <div className={`px-4 py-3 border-b ${
-            isDark ? 'bg-[#252525] border-[#3e3e3e]' : 'bg-gray-50 border-gray-300'
+            isDark ? 'bg-[#282633] border-[#3e3b50]' : 'bg-gray-50 border-gray-300'
           }`}>
             <h1 className="text-xl font-bold mb-2">
               {paste.title || 'Untitled Paste'}
@@ -160,14 +160,14 @@ export default function PastePage() {
             <ViewEditor
               value={paste.content}
               language={paste.language}
-              theme={isDark ? 'vs-dark' : 'light'}
+              theme={isDark ? 'dracula-pro' : 'light'}
             />
           </div>
 
           {/* Status Bar */}
           <div className={`
             flex items-center justify-between px-4 py-1 text-xs
-            ${isDark ? 'bg-[#007acc] text-white' : 'bg-blue-600 text-white'}
+            ${isDark ? 'bg-[#2f2c3c] text-white' : 'bg-blue-600 text-white'}
           `}>
             <div className="flex items-center gap-4">
               <span className="font-semibold">{paste.language.toUpperCase()}</span>
@@ -185,10 +185,10 @@ export default function PastePage() {
 
         {/* Sidebar - Actions */}
         <div className={`w-72 border-l flex flex-col ${
-          isDark ? 'bg-[#252525] border-[#3e3e3e]' : 'bg-gray-50 border-gray-300'
+          isDark ? 'bg-[#282633] border-[#3e3b50]' : 'bg-gray-50 border-gray-300'
         }`}>
           <div className={`px-4 py-3 border-b font-semibold ${
-            isDark ? 'border-[#3e3e3e]' : 'border-gray-300'
+            isDark ? 'border-[#3e3b50]' : 'border-gray-300'
           }`}>
             Actions
           </div>
@@ -213,7 +213,7 @@ export default function PastePage() {
               className={`
                 w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
                 ${isDark 
-                  ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                  ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
                   : 'bg-white hover:bg-gray-100 border border-gray-300'
                 }
               `}
@@ -227,7 +227,7 @@ export default function PastePage() {
               className={`
                 w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
                 ${isDark 
-                  ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                  ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
                   : 'bg-white hover:bg-gray-100 border border-gray-300'
                 }
               `}
@@ -242,7 +242,7 @@ export default function PastePage() {
               className={`
                 w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
                 ${isDark 
-                  ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                  ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
                   : 'bg-white hover:bg-gray-100 border border-gray-300'
                 }
               `}
@@ -257,7 +257,7 @@ export default function PastePage() {
               className={`
                 w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
                 ${isDark 
-                  ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                  ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
                   : 'bg-white hover:bg-gray-100 border border-gray-300'
                 }
               `}
@@ -269,7 +269,7 @@ export default function PastePage() {
 
           {/* Share Section */}
           <div className={`p-4 border-t ${
-            isDark ? 'border-[#3e3e3e]' : 'border-gray-300'
+            isDark ? 'border-[#3e3b50]' : 'border-gray-300'
           }`}>
             <p className="text-sm font-semibold mb-2">Share this paste</p>
             <div className="flex gap-2">
@@ -281,7 +281,7 @@ export default function PastePage() {
                 className={`
                   flex-1 px-3 py-2 rounded border text-xs font-mono
                   ${isDark 
-                    ? 'bg-[#1e1e1e] border-[#3e3e3e]' 
+                    ? 'bg-[#22212c] border-[#3e3b50]' 
                     : 'bg-white border-gray-300'
                   }
                 `}

@@ -50,6 +50,12 @@ func (ctrl *PasteController) Create(c *gin.Context) {
 		Password:  req.Password,
 	}
 
+	// Attach owner if the request was made by a logged-in user (OptionalAuthMiddleware)
+	if userID, exists := c.Get("user_id"); exists {
+		id := userID.(uint)
+		paste.UserID = &id
+	}
+
 	// Set expiration
 	if req.ExpiresIn > 0 {
 		expiresAt := time.Now().Add(time.Duration(req.ExpiresIn) * time.Hour)
@@ -156,6 +162,85 @@ func (ctrl *PasteController) GetRecent(c *gin.Context) {
 }
 
 func (ctrl *PasteController) Delete(c *gin.Context) {
+	shortID := c.Param("id")
+
+	if err := ctrl.service.DeletePaste(shortID); err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete paste")
+		return
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Paste deleted successfully", nil)
+}
+
+// GetMine returns the pastes owned by the current logged-in user
+func (ctrl *PasteController) GetMine(c *gin.Context) {
+	userID := c.MustGet("user_id").(uint)
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	search := c.Query("search")
+	offset := (page - 1) * limit
+
+	pastes, total, err := ctrl.service.GetMyPastes(userID, limit, offset, search)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch pastes")
+		return
+	}
+
+	totalPages := (total + int64(limit) - 1) / int64(limit)
+
+	utils.SuccessResponse(c, http.StatusOK, "Pastes retrieved successfully", gin.H{
+		"pastes": pastes,
+		"pagination": gin.H{
+			"total":       total,
+			"page":        page,
+			"limit":       limit,
+			"total_pages": totalPages,
+		},
+	})
+}
+
+// DeleteMine deletes a paste owned by the current logged-in user
+func (ctrl *PasteController) DeleteMine(c *gin.Context) {
+	userID := c.MustGet("user_id").(uint)
+	shortID := c.Param("id")
+
+	if err := ctrl.service.DeleteOwnedPaste(shortID, userID); err != nil {
+		utils.ErrorResponse(c, http.StatusForbidden, "Paste not found or not owned by you")
+		return
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Paste deleted successfully", nil)
+}
+
+// AdminGetAll returns all pastes with pagination and search (admin only)
+func (ctrl *PasteController) AdminGetAll(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	search := c.Query("search")
+	offset := (page - 1) * limit
+
+	pastes, total, err := ctrl.service.GetAllPastesAdmin(limit, offset, search)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch pastes")
+		return
+	}
+
+	totalPages := (total + int64(limit) - 1) / int64(limit)
+
+	utils.SuccessResponse(c, http.StatusOK, "Pastes retrieved successfully", gin.H{
+		"pastes": pastes,
+		"pagination": gin.H{
+			"total":       total,
+			"page":        page,
+			"limit":       limit,
+			"total_pages": totalPages,
+		},
+	})
+}
+
+// AdminDelete deletes a paste by short ID (admin only)
+func (ctrl *PasteController) AdminDelete(c *gin.Context) {
 	shortID := c.Param("id")
 
 	if err := ctrl.service.DeletePaste(shortID); err != nil {

@@ -65,7 +65,7 @@ func ConnectDatabase() {
 
 	// Auto migrate models
 	fmt.Println("Running database migrations...")
-	err = DB.AutoMigrate(&models.Paste{})
+	err = DB.AutoMigrate(&models.Paste{}, &models.User{}, &models.AppSettings{})
 	if err != nil {
 		log.Printf("Warning: Migration error: %v", err)
 	}

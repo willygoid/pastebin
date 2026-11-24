@@ -2,8 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
-  swcMinify: true,
-  
+
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
@@ -26,13 +25,13 @@ const nextConfig = {
     ],
   },
 
-  // Webpack config for syntax highlighter
-  webpack: (config) => {
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
-    };
-    return config;
+  // Prevent bundling Node's `fs` module into the client bundle for syntax highlighter
+  turbopack: {
+    resolveAlias: {
+      fs: {
+        browser: './empty.ts',
+      },
+    },
   },
 }
 

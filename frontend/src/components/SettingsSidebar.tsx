@@ -1,6 +1,7 @@
 'use client'
 
 import { Settings, X, Clock } from 'lucide-react'
+import SearchableSelect from './SearchableSelect'
 
 interface Tab {
   id: string
@@ -43,12 +44,13 @@ const LANGUAGES = [
   { value: 'markdown', label: 'Markdown' },
 ]
 
+// Hours, as strings: SearchableSelect works in strings so both pickers share it.
 const EXPIRY_OPTIONS = [
-  { value: 0, label: 'Never' },
-  { value: 1, label: '1 Hour' },
-  { value: 24, label: '1 Day' },
-  { value: 168, label: '1 Week' },
-  { value: 720, label: '1 Month' },
+  { value: '0', label: 'Never' },
+  { value: '1', label: '1 Hour' },
+  { value: '24', label: '1 Day' },
+  { value: '168', label: '1 Week' },
+  { value: '720', label: '1 Month' },
 ]
 
 export default function SettingsSidebar({ 
@@ -77,10 +79,10 @@ export default function SettingsSidebar({
       <div className={`
         fixed right-0 top-0 h-full w-80 z-50 flex flex-col shadow-2xl
         transform transition-transform duration-300 ease-in-out
-        ${isDark ? 'bg-[#252525] border-l border-[#3e3e3e]' : 'bg-gray-50 border-l border-gray-300'}
+        ${isDark ? 'bg-[#282633] border-l border-[#3e3b50]' : 'bg-gray-50 border-l border-gray-300'}
       `}>
         <div className={`flex items-center justify-between px-4 py-3 border-b ${
-          isDark ? 'border-[#3e3e3e]' : 'border-gray-300'
+          isDark ? 'border-[#3e3b50]' : 'border-gray-300'
         }`}>
           <div className="flex items-center gap-2 font-semibold">
             <Settings size={18} />
@@ -89,7 +91,7 @@ export default function SettingsSidebar({
           <button
             onClick={onToggle}
             className={`p-1 rounded transition-colors ${
-              isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'
+              isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-200'
             }`}
           >
             <X size={18} />
@@ -109,7 +111,7 @@ export default function SettingsSidebar({
               className={`
                 w-full px-3 py-2 rounded border text-sm
                 ${isDark 
-                  ? 'bg-[#1e1e1e] border-[#3e3e3e] focus:border-blue-500 placeholder:text-gray-600' 
+                  ? 'bg-[#22212c] border-[#3e3b50] focus:border-blue-500 placeholder:text-gray-600' 
                   : 'bg-white border-gray-300 focus:border-blue-500 placeholder:text-gray-400'
                 }
                 focus:outline-none
@@ -124,23 +126,15 @@ export default function SettingsSidebar({
             <label className="block text-sm font-medium mb-2">
               Language / Syntax
             </label>
-            <select
+            <SearchableSelect
               value={tab.language}
-              onChange={(e) => onUpdate({ language: e.target.value })}
-              className={`
-                w-full px-3 py-2 rounded border text-sm
-                ${isDark 
-                  ? 'bg-[#1e1e1e] border-[#3e3e3e]' 
-                  : 'bg-white border-gray-300'
-                }
-              `}
-            >
-              {LANGUAGES.map(lang => (
-                <option key={lang.value} value={lang.value}>
-                  {lang.label}
-                </option>
-              ))}
-            </select>
+              options={LANGUAGES}
+              onChange={(language) => onUpdate({ language })}
+              theme={theme}
+              searchPlaceholder="Search language..."
+              emptyLabel="No language matches"
+              ariaLabel="Language / Syntax"
+            />
           </div>
 
           <div>
@@ -148,34 +142,24 @@ export default function SettingsSidebar({
               <Clock size={16} />
               Expiration
             </label>
-            <select
-              value={tab.expiresIn}
-              onChange={(e) => onUpdate({ expiresIn: Number(e.target.value) })}
-              className={`
-                w-full px-3 py-2 rounded border text-sm
-                ${isDark 
-                  ? 'bg-[#1e1e1e] border-[#3e3e3e]' 
-                  : 'bg-white border-gray-300'
-                }
-              `}
-            >
-              {EXPIRY_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect
+              value={String(tab.expiresIn)}
+              options={EXPIRY_OPTIONS}
+              onChange={(expiresIn) => onUpdate({ expiresIn: Number(expiresIn) })}
+              theme={theme}
+              ariaLabel="Expiration"
+            />
             <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
               Paste will be automatically deleted after this period
             </p>
           </div>
 
           <div className={`p-3 rounded border ${
-            isDark ? 'bg-[#1e1e1e] border-[#3e3e3e]' : 'bg-blue-50 border-blue-200'
+            isDark ? 'bg-[#22212c] border-[#3e3b50]' : 'bg-blue-50 border-blue-200'
           }`}>
             <p className="text-xs">
               <strong>Tip:</strong> Press <kbd className={`px-1 py-0.5 rounded ${
-                isDark ? 'bg-[#2d2d2d]' : 'bg-white'
+                isDark ? 'bg-[#2f2c3c]' : 'bg-white'
               }`}>Ctrl+S</kbd> to save quickly
             </p>
           </div>

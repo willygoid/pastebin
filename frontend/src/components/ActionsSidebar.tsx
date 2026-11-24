@@ -53,10 +53,10 @@ export default function ActionsSidebar({
       <div className={`
         fixed right-0 top-0 h-full w-80 z-50 flex flex-col shadow-2xl
         transform transition-transform duration-300 ease-in-out
-        ${isDark ? 'bg-[#252525] border-l border-[#3e3e3e]' : 'bg-gray-50 border-l border-gray-300'}
+        ${isDark ? 'bg-[#282633] border-l border-[#3e3b50]' : 'bg-gray-50 border-l border-gray-300'}
       `}>
         <div className={`flex items-center justify-between px-4 py-3 border-b ${
-          isDark ? 'border-[#3e3e3e]' : 'border-gray-300'
+          isDark ? 'border-[#3e3b50]' : 'border-gray-300'
         }`}>
           <div className="flex items-center gap-2 font-semibold">
             <Zap size={18} />
@@ -65,7 +65,7 @@ export default function ActionsSidebar({
           <button
             onClick={onToggle}
             className={`p-1 rounded transition-colors ${
-              isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-200'
+              isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-200'
             }`}
           >
             <X size={18} />
@@ -100,7 +100,7 @@ export default function ActionsSidebar({
             className={`
               w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
               ${isDark 
-                ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
                 : 'bg-white hover:bg-gray-100 border border-gray-300'
               }
             `}
@@ -117,7 +117,7 @@ export default function ActionsSidebar({
             className={`
               w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
               ${isDark 
-                ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
                 : 'bg-white hover:bg-gray-100 border border-gray-300'
               }
             `}
@@ -132,7 +132,7 @@ export default function ActionsSidebar({
             className={`
               w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
               ${isDark 
-                ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
                 : 'bg-white hover:bg-gray-100 border border-gray-300'
               }
             `}
@@ -147,7 +147,7 @@ export default function ActionsSidebar({
             className={`
               w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
               ${isDark 
-                ? 'bg-[#2d2d2d] hover:bg-[#3e3e3e]' 
+                ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
                 : 'bg-white hover:bg-gray-100 border border-gray-300'
               }
             `}
@@ -171,7 +171,7 @@ export default function ActionsSidebar({
           </a>
         </div>
 
-        <div className={`p-4 border-t ${isDark ? 'border-[#3e3e3e]' : 'border-gray-300'}`}>
+        <div className={`p-4 border-t ${isDark ? 'border-[#3e3b50]' : 'border-gray-300'}`}>
           <p className="text-xs font-medium mb-2">Share URL</p>
           <div className="flex gap-2">
             <input
@@ -182,7 +182,7 @@ export default function ActionsSidebar({
               className={`
                 flex-1 px-2 py-1.5 rounded border text-xs font-mono
                 ${isDark 
-                  ? 'bg-[#1e1e1e] border-[#3e3e3e]' 
+                  ? 'bg-[#22212c] border-[#3e3b50]' 
                   : 'bg-white border-gray-300'
                 }
               `}

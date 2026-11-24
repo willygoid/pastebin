@@ -101,6 +101,30 @@ func (s *PasteService) GetRecentPastes(limit int) ([]models.Paste, error) {
 	return s.repo.FindAll(limit)
 }
 
+// GetAllPastesAdmin returns all pastes (including private ones) with pagination and search (admin only)
+func (s *PasteService) GetAllPastesAdmin(limit, offset int, search string) ([]models.Paste, int64, error) {
+	return s.repo.GetAllAdmin(limit, offset, search)
+}
+
+// GetMyPastes returns the pastes owned by the given user, with pagination and search
+func (s *PasteService) GetMyPastes(userID uint, limit, offset int, search string) ([]models.Paste, int64, error) {
+	return s.repo.GetAllByUser(userID, limit, offset, search)
+}
+
+// DeleteOwnedPaste deletes a paste only if it belongs to userID
+func (s *PasteService) DeleteOwnedPaste(shortID string, userID uint) error {
+	owned, err := s.repo.IsOwnedBy(shortID, userID)
+	if err != nil {
+		return err
+	}
+	if !owned {
+		return fmt.Errorf("paste not found")
+	}
+
+	s.cacheDelete(shortID)
+	return s.repo.Delete(shortID)
+}
+
 func (s *PasteService) DeletePaste(shortID string) error {
 	s.cacheDelete(shortID)
 	return s.repo.Delete(shortID)

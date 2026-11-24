@@ -68,7 +68,7 @@ export default function TabBar({
   
   return (
     <div className={`flex items-center border-b ${
-      isDark ? 'bg-[#1e1e1e] border-[#2d2d2d]' : 'bg-gray-100 border-gray-300'
+      isDark ? 'bg-[#22212c] border-[#2f2c3c]' : 'bg-gray-100 border-gray-300'
     }`}>
       {/* Tabs Container */}
       <div className="flex items-center overflow-x-auto flex-1 tab-scrollbar">
@@ -83,10 +83,10 @@ export default function TabBar({
                 group relative flex items-center gap-2 px-4 py-2 cursor-pointer border-r min-w-[150px] max-w-[200px]
                 ${activeTab === tab.id 
                   ? isDark 
-                    ? 'bg-[#1e1e1e] text-white border-[#2d2d2d]' 
+                    ? 'bg-[#22212c] text-white border-[#2f2c3c]' 
                     : 'bg-white text-gray-900 border-gray-300'
                   : isDark
-                    ? 'bg-[#2d2d2d] text-gray-400 hover:bg-[#252525] border-[#2d2d2d]'
+                    ? 'bg-[#2f2c3c] text-gray-400 hover:bg-[#282633] border-[#2f2c3c]'
                     : 'bg-gray-200 text-gray-600 hover:bg-gray-50 border-gray-300'
                 }
               `}
@@ -107,7 +107,7 @@ export default function TabBar({
                 }}
                 className={`
                   opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded
-                  ${isDark ? 'hover:bg-[#3e3e3e]' : 'hover:bg-gray-300'}
+                  ${isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-300'}
                 `}
               >
                 <X size={14} />
@@ -122,7 +122,7 @@ export default function TabBar({
           className={`
             flex-shrink-0 p-2 border-r transition-colors
             ${isDark 
-              ? 'hover:bg-[#2d2d2d] text-gray-400 border-[#2d2d2d]' 
+              ? 'hover:bg-[#2f2c3c] text-gray-400 border-[#2f2c3c]' 
               : 'hover:bg-gray-200 text-gray-600 border-gray-300'
             }
           `}
@@ -138,7 +138,7 @@ export default function TabBar({
         className={`
           flex-shrink-0 p-2 border-l transition-colors
           ${isDark 
-            ? 'hover:bg-red-900/30 text-red-400 border-[#2d2d2d]' 
+            ? 'hover:bg-red-900/30 text-red-400 border-[#2f2c3c]' 
             : 'hover:bg-red-50 text-red-600 border-gray-300'
           }
         `}

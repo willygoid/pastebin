@@ -1,4 +1,4 @@
-module test
+module kiosk
 
 go 1.25.1
 
