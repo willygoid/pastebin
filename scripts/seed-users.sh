@@ -1,13 +1,18 @@
 #!/bin/bash
 
 # Script untuk membuat sample users untuk testing
+# Membutuhkan akses lokal lewat docker-compose.local.yml (nginx di NGINX_PORT).
+
+set -e
+source .env
+API_BASE="${API_BASE_URL:-http://localhost:${NGINX_PORT:-8088}}"
 
 echo "=== Creating Sample Users ==="
 echo ""
 
 # Create Admin User
 echo "Creating admin user..."
-curl -s -X POST http://localhost:8080/api/auth/register \
+curl -s -X POST "$API_BASE/api/auth/register" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
@@ -23,7 +28,7 @@ echo ""
 
 # Create Regular User 1
 echo "Creating user1..."
-curl -s -X POST http://localhost:8080/api/auth/register \
+curl -s -X POST "$API_BASE/api/auth/register" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "user1",
@@ -39,7 +44,7 @@ echo ""
 
 # Create Regular User 2
 echo "Creating user2..."
-curl -s -X POST http://localhost:8080/api/auth/register \
+curl -s -X POST "$API_BASE/api/auth/register" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "user2",
@@ -55,7 +60,7 @@ echo ""
 
 # Create Regular User 3
 echo "Creating user3..."
-curl -s -X POST http://localhost:8080/api/auth/register \
+curl -s -X POST "$API_BASE/api/auth/register" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "user3",
@@ -79,4 +84,4 @@ echo "   - user1 (John Doe)"
 echo "   - user2 (Jane Smith)"
 echo "   - user3 (Bob Johnson)"
 echo ""
-echo "Login at: http://localhost/login"
+echo "Login at: $API_BASE/login"

@@ -1,6 +1,11 @@
 #!/bin/bash
 
 # Script untuk membuat user admin pertama kali
+# Membutuhkan akses lokal lewat docker-compose.local.yml (nginx di NGINX_PORT).
+
+set -e
+source .env
+API_BASE="${API_BASE_URL:-http://localhost:${NGINX_PORT:-8088}}"
 
 echo "=== Create First Admin User ==="
 echo ""
@@ -13,7 +18,7 @@ read -sp "Password: " PASSWORD
 echo ""
 
 # Create admin user via API
-RESPONSE=$(curl -s -X POST http://localhost:8080/api/auth/register \
+RESPONSE=$(curl -s -X POST "$API_BASE/api/auth/register" \
   -H "Content-Type: application/json" \
   -d "{
     \"username\": \"$USERNAME\",
@@ -27,4 +32,4 @@ echo ""
 echo "Response: $RESPONSE"
 echo ""
 echo "Admin user created successfully!"
-echo "You can now login at: http://localhost/login"
+echo "You can now login at: $API_BASE/login"

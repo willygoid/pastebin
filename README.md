@@ -12,7 +12,7 @@ Pastebin app dengan backend Go, frontend Next.js, PostgreSQL, Redis, dan nginx.
 ├── docs/        # Dokumentasi dan aset gambar pendukung (assets/)
 ├── frontend/    # Aplikasi Next.js (app router, components, lib, public)
 ├── nginx/       # Konfigurasi reverse proxy (HTTP, tanpa domain/SSL)
-├── scripts/     # Script setup, seed, backup/restore, dan quick-start
+├── scripts/     # Script install, update, seed, backup/restore, dan quick-start
 ├── tools/kiosk/ # Aplikasi kiosk browser (Go + Lorca)
 ├── docker-compose.yml       # Base: tanpa port host (aman di VPS/aaPanel)
 └── docker-compose.local.yml # Opsional: buka nginx untuk akses lokal
@@ -31,6 +31,12 @@ Jika `.env` sudah dibuat manual:
 
 ```bash
 ./scripts/quick-start.sh
+```
+
+Update instalasi yang sudah berjalan (pull, backup opsional, rebuild, health check):
+
+```bash
+./scripts/update.sh
 ```
 
 Manual/produksi — **tidak membuka port host sama sekali** (Postgres, Redis,
