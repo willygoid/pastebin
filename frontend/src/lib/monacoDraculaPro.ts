@@ -3,11 +3,11 @@ import { PHP_ATOMS, PHP_BUILTINS, PHP_KEYWORDS } from './phpBuiltins'
 // Dracula Pro theme for Monaco Editor.
 //
 // Every hex below was read back out of carbon.now.sh running its own "Dracula Pro"
-// theme (getComputedStyle on the rendered CodeMirror spans), so these are the exact
-// values Carbon paints - not eyeballed samples. The CodeMirror token -> color map it
-// produced, which the rules further down mirror:
+// theme (getComputedStyle on the rendered CodeMirror spans), then normalised to the
+// Dracula Pro (Original) Sublime palette. These are sampled values, not eyeballed
+// ones. The CodeMirror token -> color map it produced, which the rules mirror:
 //
-//   comment                                  #7970a9
+//   comment                                  #7470a9
 //   keyword / operator / tag                 #ff80bf
 //   def, variable, attribute                 #8aff80   (declarations + globals)
 //   variable-2                               #ffffff   (a *local* name being read)
@@ -15,12 +15,20 @@ import { PHP_ATOMS, PHP_BUILTINS, PHP_KEYWORDS } from './phpBuiltins'
 //   string, string-2 (template, regex)       #ffff80
 //   number                                   #9580ff
 //   atom, builtin, qualifier, meta, brackets #f8f8f2
+//
+// The palette is the Dracula Pro (Original) one from the Sublime color scheme:
+// background #22212c, selection #454158, comment #7470a9 (the background at
+// s25/l55), accent purple #9580ff. Carbon's sampled comment was #7970a9, one
+// shade brighter; that is normalised to the scheme value here.
 const colors = {
   background: '#22212c',
   selection: '#454158',
+  // Dracula Pro derives line-highlight from the background at s25/l25.
+  lineHighlight: '#323050',
   foreground: '#f8f8f2',
-  comment: '#7970a9',
+  comment: '#7470a9',
   cyan: '#80ffea',
+  blue: '#80bfff',
   green: '#8aff80',
   orange: '#ffca80',
   pink: '#ff80bf',
@@ -33,6 +41,16 @@ const colors = {
 }
 
 let defined = false
+
+// Monaco can register a language's tokenizer a tick after the editor mounts. Retry
+// for up to a second so the first paint never keeps decorations that were computed
+// without string/comment ranges.
+const TOKENIZER_RETRY_MS = 50
+const MAX_TOKENIZER_RETRIES = 20
+
+const DOT_ACCESS_LANGUAGES = new Set([
+  'javascript', 'typescript', 'java', 'csharp', 'c', 'cpp', 'go', 'rust', 'python', 'ruby',
+])
 
 export function defineDraculaProTheme(monaco: any) {
   if (defined) return
@@ -86,15 +104,17 @@ export function defineDraculaProTheme(monaco: any) {
       'editor.foreground': colors.foreground,
       'editorLineNumber.foreground': colors.comment,
       'editorLineNumber.activeForeground': colors.foreground,
-      'editor.lineHighlightBackground': colors.selection + '59',
+      'editor.lineHighlightBackground': colors.lineHighlight,
       'editor.selectionBackground': colors.selection,
-      'editor.inactiveSelectionBackground': colors.selection + '80',
+      // The Sublime scheme paints inactive selections with the same solid color.
+      'editor.inactiveSelectionBackground': colors.selection,
       'editorCursor.foreground': colors.foreground,
-      'editorWhitespace.foreground': colors.selection,
-      'editorIndentGuide.background': colors.selection,
+      'editorWhitespace.foreground': colors.comment + '80',
+      'editorIndentGuide.background': colors.lineHighlight,
       'editorIndentGuide.activeBackground': colors.comment,
-      'editor.findMatchBackground': colors.purple + '55',
-      'editor.findMatchHighlightBackground': colors.purple + '33',
+      // `find_highlight` is yellow in Dracula Pro, not purple.
+      'editor.findMatchBackground': colors.yellow,
+      'editor.findMatchHighlightBackground': colors.yellow + '66',
       'editorBracketMatch.background': colors.selection,
       'editorBracketMatch.border': colors.purple,
       'editorGutter.background': colors.background,
@@ -216,11 +236,20 @@ function collectDeclarations(lineContent: string): Map<number, string> {
   return decls
 }
 
+// Monaco tokenizes a quoted HTML/XML attribute value as `attribute.value.html`,
+// not as `string.html`. The old `string|comment|regexp` filter therefore let the
+// raw-regex passes paint `:`, `/`, `!` and `.com` inside e.g.
+// `<meta description="Contoh : google.com/inistring!asd/test">`. Exclude every
+// token type that stands for literal text: strings, comments, regexps, attribute
+// values/names, tags, metatags and markup text. Embedded JS/CSS keeps its own
+// token types, so those ranges are still decorated normally.
+const LITERAL_TOKEN_RE = /^(string|comment|regexp|attribute\.(value|name)|tag|metatag|text)/
+
 function getExcludedRanges(lineContent: string, lineTokens: any[]): Array<[number, number]> {
   const ranges: Array<[number, number]> = []
   for (let i = 0; i < lineTokens.length; i++) {
     const token = lineTokens[i]
-    if (/^(string|comment|regexp)/.test(token.type)) {
+    if (LITERAL_TOKEN_RE.test(token.type)) {
       const end = i + 1 < lineTokens.length ? lineTokens[i + 1].offset : lineContent.length
       ranges.push([token.offset, end])
     }
@@ -239,29 +268,54 @@ export function applyDraculaProDecorations(editor: any, monaco: any, theme: stri
   const languageId = model.getLanguageId ? model.getLanguageId() : model.getModeId()
   const prevIds = editor.__pastefelDraculaDecorations || []
 
+  clearTimeout(editor.__pastefelDraculaTokenizerRetry)
+
   // Prose languages have no operators or property access to recolor, and marking up
   // their punctuation would be actively wrong.
   if (theme !== 'dracula-pro' || languageId === 'plaintext' || languageId === 'markdown') {
     editor.__pastefelDraculaDecorations = editor.deltaDecorations(prevIds, [])
+    editor.__pastefelDraculaTokenizerAttempts = 0
     return
   }
+
+  // Monaco loads tokenizers for some languages lazily. An early tokenize() call can
+  // return tokens with empty types, which makes the exclusion filter below a no-op
+  // and lets the raw-regex passes paint inside strings and comments (for example
+  // turning `<!-- Main Heading -->` pink). Clear the decorations and retry briefly
+  // instead of leaving that wrong first paint on screen.
+  const allTokens = monaco.editor.tokenize(model.getValue(), languageId)
+  const hasTokenTypes = allTokens.some((line: any[]) => line.some((token: any) => token.type))
+  if (!hasTokenTypes) {
+    editor.__pastefelDraculaDecorations = editor.deltaDecorations(prevIds, [])
+    const attempts = editor.__pastefelDraculaTokenizerAttempts || 0
+    if (attempts < MAX_TOKENIZER_RETRIES) {
+      editor.__pastefelDraculaTokenizerAttempts = attempts + 1
+      editor.__pastefelDraculaTokenizerRetry = setTimeout(
+        () => applyDraculaProDecorations(editor, monaco, theme),
+        TOKENIZER_RETRY_MS
+      )
+    }
+    return
+  }
+  editor.__pastefelDraculaTokenizerAttempts = 0
 
   // Scope tracking (declaration green vs. reference white) is parsed with JS syntax,
   // so it only runs there.
   const isJs = languageId === 'javascript' || languageId === 'typescript'
-  // In PHP a dot is string concatenation, not property access - running the dot pass
-  // there would paint the right-hand operand of every `.` as a method name.
-  const hasDotAccess = languageId !== 'php'
+  // The cyan "after a dot" pass only makes sense where `.` is member access. PHP uses
+  // it for concatenation, and in YAML/CSS/SQL/markup it separates keys, selectors or
+  // punctuation - there it would paint the wrong identifier cyan (e.g. `foo.bar` in
+  // YAML, where the whole key should keep one color).
+  const hasDotAccess = DOT_ACCESS_LANGUAGES.has(languageId)
   const neutral = neutralNamesFor(languageId)
 
   const decorations: any[] = []
   const lineCount = model.getLineCount()
 
-  // Tokenize the whole document in one go. Monaco's tokenizers are stateful across
+  // `allTokens` is tokenized above in one go. Monaco's tokenizers are stateful across
   // lines, and several languages depend on it - feeding PHP a single line in isolation
   // leaves it in HTML state and yields no tokens at all, so the string and comment
   // ranges the passes below must avoid would come back empty.
-  const allTokens = monaco.editor.tokenize(model.getValue(), languageId)
 
   // First pass: every name the file binds somewhere. A read of one of these is a local
   // reference (white); anything else - an import, a global like `console`, an unresolved

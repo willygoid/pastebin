@@ -6,7 +6,7 @@ import axios from 'axios'
 import dynamic from 'next/dynamic'
 import { 
   Copy, Download, Edit, Share2, Eye, 
-  Calendar, Code, CheckCircle, ExternalLink
+  Calendar, Code, CheckCircle, ExternalLink, Frown
 } from 'lucide-react'
 import Layout from '@/components/Layout'
 
@@ -106,7 +106,9 @@ export default function PastePage() {
       <Layout theme={theme} onThemeToggle={() => setTheme(isDark ? 'light' : 'dark')}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center p-8">
-            <div className="text-6xl mb-4">😢</div>
+            <div className="mb-4 flex justify-center">
+              <Frown size={64} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
+            </div>
             <h1 className="text-3xl font-bold mb-4">Paste Not Found</h1>
             <p className={`mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               {error || 'This paste does not exist or has expired'}

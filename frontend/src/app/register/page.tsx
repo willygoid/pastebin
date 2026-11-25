@@ -130,22 +130,25 @@ export default function RegisterPage() {
             />
 
             {/* Top Bar */}
-            <div className={`flex h-12 flex-shrink-0 items-center justify-between border-b px-4 ${isDark ? 'border-[#3e3b50] bg-[#2f2c3c]' : 'border-gray-300 bg-gray-100'}`}>
+            <div className={`flex items-center justify-between px-4 py-1.5 border-b ${isDark ? 'bg-[#2f2c3c] border-[#3e3b50]' : 'bg-gray-100 border-gray-300'
+                }`}>
                 <button
                     onClick={() => router.push('/')}
-                    className="flex items-center gap-2 transition-opacity hover:opacity-80"
+                    className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                 >
-                    <img src="/logo-mark.png" alt="Pastefel" className="h-4 w-4" />
-                    <span className={`text-base ${logoFont.className}`}>Paste<span className="pastefel-gradient">fel</span></span>
+                    <img src="/logo-mark.png" alt="Pastefel" className="h-5 w-5" />
+                    <span className={`text-lg ${logoFont.className}`}>Paste<span className="pastefel-gradient">fel</span></span>
                 </button>
 
-                <button
-                    onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                    className={`rounded p-1.5 transition-colors ${isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-200'}`}
-                    title={isDark ? 'Light Mode' : 'Dark Mode'}
-                >
-                    {isDark ? <Sun size={16} /> : <Moon size={16} />}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                        className={`p-1.5 rounded transition-colors ${isDark ? 'hover:bg-[#3e3b50]' : 'hover:bg-gray-200'}`}
+                        title={isDark ? 'Light Mode' : 'Dark Mode'}
+                    >
+                        {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                    </button>
+                </div>
             </div>
 
             {/* Main Content */}
