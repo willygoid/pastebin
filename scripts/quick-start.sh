@@ -30,15 +30,19 @@ echo "✅ Docker found!"
 
 echo ""
 echo "2️⃣  Checking Docker Compose..."
-if ! command -v docker-compose &> /dev/null; then
+if docker compose version > /dev/null 2>&1; then
+    compose=(docker compose)
+elif command -v docker-compose > /dev/null 2>&1; then
+    compose=(docker-compose)
+else
     echo "❌ Docker Compose tidak terinstall!"
     exit 1
 fi
-echo "✅ Docker Compose found!"
+echo "✅ Docker Compose found (${compose[*]})!"
 
 echo ""
 echo "3️⃣  Building and starting containers..."
-docker-compose up -d --build
+"${compose[@]}" up -d --build
 
 echo ""
 echo "4️⃣  Waiting for services to be ready..."
@@ -46,12 +50,12 @@ sleep 10
 
 echo ""
 echo "5️⃣  Checking container status..."
-docker-compose ps
+"${compose[@]}" ps
 
 echo ""
-echo "6️⃣  Checking backend health..."
+echo "6️⃣  Checking backend health (via nginx, tanpa port host)..."
 for i in {1..30}; do
-    if curl -s http://localhost:8080/health > /dev/null; then
+    if "${compose[@]}" exec -T nginx wget -qO- http://localhost/health > /dev/null 2>&1; then
         echo "✅ Backend is ready!"
         break
     fi
@@ -65,9 +69,10 @@ echo "  🎉 Setup Complete!"
 echo "========================================="
 echo ""
 echo "📍 Access Points:"
-echo "   - Frontend: http://localhost"
-echo "   - Backend API: http://localhost:8080/api"
-echo "   - Login Page: http://localhost/login"
+echo "   - Via Cloudflare Tunnel: https://<domain-tunnel>"
+echo "   - Lokal (jika pakai docker-compose.local.yml): http://localhost:${NGINX_PORT:-8088}"
+echo "   - Backend API: http://localhost:${NGINX_PORT:-8088}/api"
+echo "   - Login Page: http://localhost:${NGINX_PORT:-8088}/login"
 echo ""
 echo "📝 Next Steps:"
 echo "   1. Create sample users:"
@@ -91,8 +96,8 @@ echo "📖 Documentation:"
 echo "   - English: docs/authentication.md"
 echo "   - Indonesian: docs/autentikasi.md"
 echo ""
-echo "🛑 To stop: docker-compose down"
-echo "🔄 To restart: docker-compose restart"
-echo "📋 To view logs: docker-compose logs -f [service-name]"
+echo "🛑 To stop: ${compose[*]} down"
+echo "🔄 To restart: ${compose[*]} restart"
+echo "📋 To view logs: ${compose[*]} logs -f [service-name]"
 echo ""
 echo "========================================="

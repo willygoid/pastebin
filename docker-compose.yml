@@ -50,8 +50,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
-    ports:
-      - "5432:5432"
+    # Internal saja: jangan bentrok dengan Postgres milik app lain di VPS.
     networks:
       - pastebin_network
     healthcheck:
@@ -68,8 +67,7 @@ services:
     command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
+    # Internal saja: ini penyebab konflik 6379 dengan Redis app lain.
     networks:
       - pastebin_network
     healthcheck:
@@ -100,8 +98,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - REDIS_DB=${REDIS_DB}
       - PORT=${BACKEND_PORT}
-    ports:
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    # Backend diakses lewat nginx (/api, /health), tidak perlu port host.
     depends_on:
       postgres:
         condition: service_healthy
@@ -140,8 +137,9 @@ services:
       dockerfile: Dockerfile
     container_name: ${APP_NAME}_nginx
     restart: unless-stopped
-    ports:
-      - "${NGINX_PORT:-80}:80"
+    # Tanpa port host secara default: aman di VPS yang nginx/host-nya sudah
+    # memakai 80. Untuk akses lokal, pakai docker-compose.local.yml.
+    # Publik masuk lewat cloudflared -> http://nginx:80 di jaringan Docker.
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro

@@ -74,9 +74,13 @@ docker-compose up -d --build
 
 ### 6. Akses Aplikasi
 
-- Frontend: http://localhost
-- Backend API: http://localhost:8080/api
-- API Health: http://localhost:8080/health
+- Frontend: http://localhost:8088 (dengan `docker-compose.local.yml`)
+- Backend API: http://localhost:8088/api
+- API Health: http://localhost:8088/health
+
+> Compose utama tidak membuka port host. Contoh `localhost:8080` di bawah
+> berlaku hanya jika backend diekspos manual; di produksi gunakan `/api` lewat
+> nginx atau domain Cloudflare Tunnel.
 
 ## 🔐 API Endpoints
 

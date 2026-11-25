@@ -164,7 +164,7 @@ echo ""
 echo "🌐 Frontend & proxy"
 api_url="$(ask_setting 'NEXT_PUBLIC_API_URL' '/api')"
 recaptcha_key="$(ask_setting 'NEXT_PUBLIC_RECAPTCHA_SITE_KEY' '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI')"
-nginx_port="$(ask_port 'Port nginx (NGINX_PORT)' '80')"
+nginx_port="$(ask_port 'Port nginx untuk akses lokal (NGINX_PORT)' '8088')"
 
 echo ""
 echo "☁️  Cloudflare Tunnel (opsional)"

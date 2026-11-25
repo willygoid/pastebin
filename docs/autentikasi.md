@@ -118,10 +118,14 @@ curl -X POST http://localhost:8080/api/auth/register \
 
 ### 5. Akses Aplikasi
 
-- **Frontend**: http://localhost
-- **Login**: http://localhost/login
-- **Register**: http://localhost/register
-- **Backend API**: http://localhost:8080/api
+- **Frontend**: http://localhost:8088 (dengan `docker-compose.local.yml`)
+- **Login**: http://localhost:8088/login
+- **Register**: http://localhost:8088/register
+- **Backend API**: http://localhost:8088/api
+
+> Compose utama tidak membuka port host. Contoh `localhost:8080` di bawah
+> berlaku hanya jika backend diekspos manual; di produksi gunakan `/api` lewat
+> nginx atau domain Cloudflare Tunnel.
 
 ## 🧪 Testing
 

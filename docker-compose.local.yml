@@ -1,0 +1,9 @@
+# Opsional: buka nginx ke host untuk akses lokal tanpa Cloudflare Tunnel.
+# Pakai bersama compose utama:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+# Port host diambil dari NGINX_PORT di .env (default: 8088, bukan 80 agar
+# tidak bentrok dengan nginx/aaPanel di VPS).
+services:
+  nginx:
+    ports:
+      - "${NGINX_PORT:-8088}:80"
