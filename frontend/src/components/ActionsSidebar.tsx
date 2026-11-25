@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { 
   Copy, Download, Share2, ExternalLink, 
-  Edit, CheckCircle, X, Zap
+  Edit, CheckCircle, X, Zap, Check
 } from 'lucide-react'
 
 interface ActionsSidebarProps {
@@ -76,70 +76,81 @@ export default function ActionsSidebar({
           <div className={`p-3 rounded ${
             isDark ? 'bg-green-900/20 text-green-400' : 'bg-green-50 text-green-700'
           }`}>
-            <p className="text-sm font-medium mb-1">✅ Paste Saved!</p>
+            <div className="flex items-center gap-2 mb-1">
+              <Check size={16} className="shrink-0" />
+              <p className="text-sm font-medium">Paste Saved!</p>
+            </div>
             <p className="text-xs">Your paste is now available at:</p>
             <p className="text-xs font-mono mt-1 truncate">{url}</p>
           </div>
 
-          <button
-            onClick={handleCopy}
-            className={`
-              w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
-              ${isDark 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }
-            `}
-          >
-            {copied ? <CheckCircle size={18} /> : <Copy size={18} />}
-            {copied ? 'Copied!' : 'Copy Content'}
-          </button>
+          <div className="space-y-2">
+            <p className={`text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              Most used
+            </p>
+            <button
+              onClick={handleCopy}
+              className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium
+                ${isDark 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }
+              `}
+            >
+              {copied ? <CheckCircle size={18} /> : <Copy size={18} />}
+              {copied ? 'Copied!' : 'Copy Content'}
+            </button>
+            <button
+              onClick={handleCopyURL}
+              className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
+                ${isDark 
+                  ? 'bg-[#2f2c3c] hover:bg-[#3e3b50] text-gray-100' 
+                  : 'bg-white hover:bg-gray-100 border border-gray-300 text-gray-800'
+                }
+              `}
+            >
+              {urlCopied ? <CheckCircle size={18} /> : <Share2 size={18} />}
+              {urlCopied ? 'URL Copied!' : 'Copy URL'}
+            </button>
+          </div>
 
-          <button
-            onClick={handleCopyURL}
-            className={`
-              w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
-              ${isDark 
-                ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
-                : 'bg-white hover:bg-gray-100 border border-gray-300'
-              }
-            `}
-          >
-            {urlCopied ? <CheckCircle size={18} /> : <Share2 size={18} />}
-            {urlCopied ? 'URL Copied!' : 'Share URL'}
-          </button>
-
-          <button
-            onClick={() => {
-              onEdit()
-              onToggle()
-            }}
-            className={`
-              w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
-              ${isDark 
-                ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
-                : 'bg-white hover:bg-gray-100 border border-gray-300'
-              }
-            `}
-          >
-            <Edit size={18} />
-            Fork to New Tab
-          </button>
-
-          <a
-            href={`/${shortId}/raw`}
-            target="_blank"
-            className={`
-              w-full flex items-center gap-3 px-4 py-3 rounded transition-colors
-              ${isDark 
-                ? 'bg-[#2f2c3c] hover:bg-[#3e3b50]' 
-                : 'bg-white hover:bg-gray-100 border border-gray-300'
-              }
-            `}
-          >
-            <ExternalLink size={18} />
-            View Raw
-          </a>
+          <div className="space-y-2 pt-1">
+            <p className={`text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              More
+            </p>
+            <a
+              href={`/${shortId}/raw`}
+              target="_blank"
+              className={`
+                w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors
+                ${isDark 
+                  ? 'bg-[#2f2c3c] hover:bg-[#3e3b50] text-gray-100' 
+                  : 'bg-white hover:bg-gray-100 border border-gray-300 text-gray-800'
+                }
+              `}
+            >
+              <ExternalLink size={18} />
+              Open Raw
+            </a>
+            <button
+              onClick={() => {
+                onEdit()
+                onToggle()
+              }}
+              className={`
+                w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors
+                ${isDark 
+                  ? 'bg-[#2f2c3c] hover:bg-[#3e3b50] text-gray-100' 
+                  : 'bg-white hover:bg-gray-100 border border-gray-300 text-gray-800'
+                }
+              `}
+            >
+              <Edit size={18} />
+              Fork to New Tab
+            </button>
+          </div>
 
           <a
             href={`/${shortId}/raw?download=1`}

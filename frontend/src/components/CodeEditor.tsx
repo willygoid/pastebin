@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
 import { defineDraculaProTheme, applyDraculaProDecorations } from '@/lib/monacoDraculaPro'
+import { toMonacoLanguageId } from '@/lib/monacoLanguages'
 
 interface CodeEditorProps {
   value: string
@@ -26,8 +27,11 @@ export default function CodeEditor({
   // kept re-applying the Dracula decorations after a switch to light, painting
   // .dracula-reference-color (#ffffff) onto a white background.
   const themeRef = useRef(theme)
-  themeRef.current = theme
   const decorationTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useEffect(() => {
+    themeRef.current = theme
+  }, [theme])
 
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editorRef.current = editor
@@ -78,14 +82,17 @@ export default function CodeEditor({
     }
   }, [theme, language])
 
-  // A debounced re-decorate still queued when the editor goes away would run against a
-  // disposed instance.
-  useEffect(() => () => clearTimeout(decorationTimeoutRef.current), [])
+  // Queued re-decorations (content debounce and tokenizer retry) must not run against
+  // a disposed editor when the tab is closed or switched.
+  useEffect(() => () => {
+    clearTimeout(decorationTimeoutRef.current)
+    clearTimeout(editorRef.current?.__pastefelDraculaTokenizerRetry)
+  }, [])
 
   return (
     <Editor
       height="100%"
-      language={language}
+      language={toMonacoLanguageId(language)}
       value={value}
       onChange={(value) => !readOnly && onChange(value || '')}
       theme={theme}

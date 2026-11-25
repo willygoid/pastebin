@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
 import { defineDraculaProTheme, applyDraculaProDecorations } from '@/lib/monacoDraculaPro'
+import { toMonacoLanguageId } from '@/lib/monacoLanguages'
 
 interface ViewEditorProps {
   value: string
@@ -53,10 +54,16 @@ export default function ViewEditor({ value, language, theme }: ViewEditorProps) 
     }
   }, [theme, language, value])
 
+  // A tokenizer retry queued by applyDraculaProDecorations must not repaint a disposed
+  // editor after the user navigates away.
+  useEffect(() => () => {
+    clearTimeout(editorRef.current?.__pastefelDraculaTokenizerRetry)
+  }, [])
+
   return (
     <Editor
       height="100%"
-      language={language}
+      language={toMonacoLanguageId(language)}
       value={value}
       theme={theme}
       beforeMount={defineDraculaProTheme}
